@@ -4,11 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { useBusinessSetup } from "./hooks/useBusinessSetup";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
 import Appointments from "./pages/Appointments";
+import Tasks from "./pages/Tasks";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -16,13 +20,20 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const { hasBusiness, loading: businessLoading, createPlaceholderBusiness } = useBusinessSetup();
   
-  if (loading) {
+  if (loading || businessLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Auto-create placeholder business if none exists
+  if (hasBusiness === false) {
+    createPlaceholderBusiness();
+    return <div className="min-h-screen flex items-center justify-center">Setting up your business...</div>;
   }
   
   return <Layout>{children}</Layout>;
@@ -60,17 +71,17 @@ const App = () => (
             } />
             <Route path="/tasks" element={
               <ProtectedRoute>
-                <div>Tasks Page - Coming Soon</div>
+                <Tasks />
               </ProtectedRoute>
             } />
             <Route path="/reports" element={
               <ProtectedRoute>
-                <div>Reports Page - Coming Soon</div>
+                <Reports />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
               <ProtectedRoute>
-                <div>Settings Page - Coming Soon</div>
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
