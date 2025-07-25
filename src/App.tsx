@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Customers from "./pages/Customers";
+import CustomerDetail from "./pages/CustomerDetail";
+import Appointments from "./pages/Appointments";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -42,12 +45,17 @@ const App = () => (
             } />
             <Route path="/customers" element={
               <ProtectedRoute>
-                <div>Customers Page - Coming Soon</div>
+                <Customers />
+              </ProtectedRoute>
+            } />
+            <Route path="/customers/:id" element={
+              <ProtectedRoute>
+                <CustomerDetail />
               </ProtectedRoute>
             } />
             <Route path="/appointments" element={
               <ProtectedRoute>
-                <div>Appointments Page - Coming Soon</div>
+                <Appointments />
               </ProtectedRoute>
             } />
             <Route path="/tasks" element={
