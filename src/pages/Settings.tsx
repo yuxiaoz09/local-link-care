@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBusinessSetup } from "@/hooks/useBusinessSetup";
 
 interface Business {
   id: string;
@@ -26,6 +27,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const { refetch } = useBusinessSetup();
 
   useEffect(() => {
     fetchBusiness();
@@ -104,6 +106,8 @@ export default function Settings() {
 
       // Refresh the business data
       fetchBusiness();
+      // Refresh the business setup hook state
+      refetch();
     } catch (error) {
       console.error("Error saving business:", error);
       toast({
