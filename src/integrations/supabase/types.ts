@@ -23,6 +23,7 @@ export type Database = {
           end_time: string
           id: string
           price: number | null
+          service_id: string | null
           start_time: string
           status: string | null
           title: string
@@ -36,6 +37,7 @@ export type Database = {
           end_time: string
           id?: string
           price?: number | null
+          service_id?: string | null
           start_time: string
           status?: string | null
           title: string
@@ -49,6 +51,7 @@ export type Database = {
           end_time?: string
           id?: string
           price?: number | null
+          service_id?: string | null
           start_time?: string
           status?: string | null
           title?: string
@@ -66,10 +69,60 @@ export type Database = {
             foreignKeyName: "appointments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      business_metrics: {
+        Row: {
+          business_id: string
+          completed_appointments: number | null
+          created_at: string | null
+          id: string
+          metric_date: string
+          new_customers: number | null
+          total_appointments: number | null
+          total_customers: number | null
+          total_revenue: number | null
+        }
+        Insert: {
+          business_id: string
+          completed_appointments?: number | null
+          created_at?: string | null
+          id?: string
+          metric_date: string
+          new_customers?: number | null
+          total_appointments?: number | null
+          total_customers?: number | null
+          total_revenue?: number | null
+        }
+        Update: {
+          business_id?: string
+          completed_appointments?: number | null
+          created_at?: string | null
+          id?: string
+          metric_date?: string
+          new_customers?: number | null
+          total_appointments?: number | null
+          total_customers?: number | null
+          total_revenue?: number | null
+        }
+        Relationships: []
       }
       businesses: {
         Row: {
@@ -151,6 +204,39 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          base_price: number | null
+          business_id: string
+          cost_per_service: number | null
+          created_at: string | null
+          estimated_duration: number | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_price?: number | null
+          business_id: string
+          cost_per_service?: number | null
+          created_at?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number | null
+          business_id?: string
+          cost_per_service?: number | null
+          created_at?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           business_id: string
@@ -197,6 +283,13 @@ export type Database = {
             foreignKeyName: "tasks_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -204,10 +297,62 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      customer_analytics: {
+        Row: {
+          address: string | null
+          avg_order_value: number | null
+          business_id: string | null
+          created_at: string | null
+          customer_lifetime_value: number | null
+          days_since_last_visit: number | null
+          email: string | null
+          frequency_score: number | null
+          id: string | null
+          monetary_score: number | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          recency_score: number | null
+          tags: string[] | null
+          total_appointments: number | null
+          total_spent: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_analytics: {
+        Row: {
+          avg_transaction_value: number | null
+          business_id: string | null
+          month: string | null
+          total_appointments: number | null
+          total_revenue: number | null
+          unique_customers: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_customer_segment: {
+        Args: { r_score: number; f_score: number; m_score: number }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

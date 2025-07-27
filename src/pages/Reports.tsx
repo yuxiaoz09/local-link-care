@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, Users, Clock, DollarSign, TrendingUp, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { RevenueAnalytics } from "@/components/analytics/RevenueAnalytics";
+import { CustomerAnalytics } from "@/components/analytics/CustomerAnalytics";
 
 interface ReportData {
   totalCustomers: number;
@@ -140,7 +143,19 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+      <div>
+        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+        <p className="text-muted-foreground">Comprehensive business performance and insights.</p>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
+          <TabsTrigger value="customers">Customer Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
 
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -284,6 +299,16 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="revenue">
+          <RevenueAnalytics />
+        </TabsContent>
+
+        <TabsContent value="customers">
+          <CustomerAnalytics />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
