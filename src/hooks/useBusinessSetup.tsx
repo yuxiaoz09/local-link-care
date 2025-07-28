@@ -9,37 +9,48 @@ export function useBusinessSetup() {
   const { user } = useAuth();
 
   useEffect(() => {
+    console.log('🏢 useBusinessSetup: Effect triggered', { hasUser: !!user, userId: user?.id });
     if (user) {
       checkBusinessSetup();
+    } else {
+      console.log('🏢 useBusinessSetup: No user, setting loading to false');
+      setLoading(false);
     }
   }, [user]);
 
   const checkBusinessSetup = async () => {
+    console.log('🏢 useBusinessSetup: Starting business check for user', user?.id);
     try {
       if (!user) {
+        console.log('🏢 useBusinessSetup: No user found, setting defaults');
         setHasBusiness(false);
         setLoading(false);
         return;
       }
 
+      console.log('🏢 useBusinessSetup: Querying businesses table...');
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
         .eq('user_id', user.id)
         .maybeSingle();
 
+      console.log('🏢 useBusinessSetup: Query result', { data, error, hasData: !!data });
+
       if (error) {
-        console.error("Error checking business:", error);
+        console.error("🏢 useBusinessSetup: Error checking business:", error);
         setHasBusiness(false);
         setBusinessData(null);
       } else {
         setHasBusiness(!!data);
         setBusinessData(data);
+        console.log('🏢 useBusinessSetup: Business setup complete', { hasBusiness: !!data });
       }
     } catch (error) {
-      console.error("Error checking business setup:", error);
+      console.error("🏢 useBusinessSetup: Catch block error:", error);
       setHasBusiness(false);
     } finally {
+      console.log('🏢 useBusinessSetup: Setting loading to false');
       setLoading(false);
     }
   };

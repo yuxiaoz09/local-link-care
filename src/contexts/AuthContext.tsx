@@ -28,12 +28,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔐 AuthContext: Setting up auth listener...');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔐 AuthContext: Auth state changed', { event, hasSession: !!session, userId: session?.user?.id });
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        console.log('🔐 AuthContext: Loading set to false');
         
         // Security: Log auth events and manage session timeout
         if (event === 'SIGNED_IN') {
@@ -50,10 +54,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    console.log('🔐 AuthContext: Getting initial session...');
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('🔐 AuthContext: Initial session result', { hasSession: !!session, error, userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      console.log('🔐 AuthContext: Loading set to false (initial session)');
       
       // Security: Start session timer for existing sessions
       if (session) {
@@ -62,6 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.auth.signOut();
         });
       }
+    }).catch((error) => {
+      console.error('🔐 AuthContext: Error getting initial session', error);
+      setLoading(false);
     });
 
     return () => {
