@@ -71,7 +71,7 @@ const Appointments = () => {
               variant="outline" 
               size="sm" 
               onClick={() => navigate('/settings')}
-              className="ml-2"
+              className="ml-2 text-black"
             >
               Setup Now
             </Button>
