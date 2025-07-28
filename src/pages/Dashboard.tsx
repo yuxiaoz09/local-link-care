@@ -37,7 +37,7 @@ const Dashboard = () => {
         .from('businesses')
         .select('id')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (!business) return;
 

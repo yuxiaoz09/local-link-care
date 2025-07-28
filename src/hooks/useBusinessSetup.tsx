@@ -15,12 +15,19 @@ export function useBusinessSetup() {
 
   const checkBusinessSetup = async () => {
     try {
+      if (!user) {
+        setHasBusiness(false);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("businesses")
         .select("id")
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error checking business:", error);
         setHasBusiness(false);
       } else {
@@ -38,6 +45,18 @@ export function useBusinessSetup() {
     if (!user) return false;
 
     try {
+      // First check if business already exists
+      const { data: existingBusiness } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingBusiness) {
+        setHasBusiness(true);
+        return true;
+      }
+
       const placeholderBusiness = {
         name: "My Business",
         owner_email: user.email || "owner@example.com",

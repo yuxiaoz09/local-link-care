@@ -35,14 +35,26 @@ export default function Settings() {
 
   const fetchBusiness = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
+      if (error) {
+        console.error("Error fetching business:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load business information",
+          variant: "destructive",
+        });
+      } else if (data) {
         setBusiness(data);
         setName(data.name);
         setOwnerEmail(data.owner_email);
