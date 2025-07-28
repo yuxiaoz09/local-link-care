@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function useBusinessSetup() {
   const [hasBusiness, setHasBusiness] = useState<boolean | null>(null);
+  const [businessData, setBusinessData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -23,15 +24,17 @@ export function useBusinessSetup() {
 
       const { data, error } = await supabase
         .from("businesses")
-        .select("id")
+        .select("*")
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) {
         console.error("Error checking business:", error);
         setHasBusiness(false);
+        setBusinessData(null);
       } else {
         setHasBusiness(!!data);
+        setBusinessData(data);
       }
     } catch (error) {
       console.error("Error checking business setup:", error);
@@ -81,6 +84,7 @@ export function useBusinessSetup() {
 
   return {
     hasBusiness,
+    businessData,
     loading,
     createPlaceholderBusiness,
     refetch: checkBusinessSetup,

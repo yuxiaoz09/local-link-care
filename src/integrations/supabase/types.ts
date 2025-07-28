@@ -157,6 +157,44 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_history: {
+        Row: {
+          business_id: string
+          created_at: string | null
+          id: string
+          parsed_intent: string | null
+          response_data: Json | null
+          updated_at: string | null
+          user_query: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string | null
+          id?: string
+          parsed_intent?: string | null
+          response_data?: Json | null
+          updated_at?: string | null
+          user_query: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string | null
+          id?: string
+          parsed_intent?: string | null
+          response_data?: Json | null
+          updated_at?: string | null
+          user_query?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_history_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -197,6 +235,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      query_analytics: {
+        Row: {
+          avg_response_time: number | null
+          business_id: string
+          created_at: string | null
+          id: string
+          last_used: string | null
+          query_type: string
+          success_rate: number | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          avg_response_time?: number | null
+          business_id: string
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          query_type: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          avg_response_time?: number | null
+          business_id?: string
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          query_type?: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "query_analytics_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -382,9 +464,54 @@ export type Database = {
       }
     }
     Functions: {
+      get_appointments_period: {
+        Args: { business_uuid: string; start_date: string; end_date: string }
+        Returns: {
+          appointment_id: string
+          customer_name: string
+          appointment_title: string
+          start_time: string
+          end_time: string
+          status: string
+          price: number
+        }[]
+      }
+      get_at_risk_customers: {
+        Args: { business_uuid: string; days_threshold?: number }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          customer_email: string
+          customer_phone: string
+          days_since_last_visit: number
+          total_spent: number
+          last_visit_date: string
+        }[]
+      }
+      get_best_customer_period: {
+        Args: { business_uuid: string; start_date: string; end_date: string }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          customer_email: string
+          customer_phone: string
+          total_spent: number
+          appointment_count: number
+          last_visit: string
+        }[]
+      }
       get_customer_segment: {
         Args: { r_score: number; f_score: number; m_score: number }
         Returns: string
+      }
+      get_revenue_period: {
+        Args: { business_uuid: string; start_date: string; end_date: string }
+        Returns: {
+          total_revenue: number
+          appointment_count: number
+          avg_transaction_value: number
+          unique_customers: number
+        }[]
       }
       log_analytics_access: {
         Args: { p_action: string; p_resource: string; p_details?: Json }

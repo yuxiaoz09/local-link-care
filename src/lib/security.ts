@@ -88,3 +88,6 @@ export class SessionManager {
 }
 
 export const sessionManager = new SessionManager();
+
+// Alias for backwards compatibility
+export const sanitizeInput = sanitizeText;

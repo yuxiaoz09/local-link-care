@@ -14,6 +14,7 @@ import {
   Menu
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { ChatInterface } from '@/components/chat/ChatInterface';
 
 interface LayoutProps {
   children: ReactNode;
@@ -115,6 +116,9 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+
+      {/* Smart Chat Interface */}
+      <ChatInterface />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, Calendar, CheckSquare, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { QuickInsights } from '@/components/chat/QuickInsights';
 
 interface DashboardStats {
   customerCount: number;
@@ -158,6 +159,14 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Insights */}
+      <QuickInsights
+        onQuestionClick={(question) => {
+          // This will trigger the chat interface to open and process the question
+          window.dispatchEvent(new CustomEvent('openChatWithQuestion', { detail: question }));
+        }}
+      />
 
       {/* Today's Appointments and Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
