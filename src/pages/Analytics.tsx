@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CustomerAnalytics from "@/components/analytics/CustomerAnalytics";
+import { LocationAnalytics } from "@/components/analytics/LocationAnalytics";
 
 const Analytics = () => {
   return (
@@ -11,13 +12,17 @@ const Analytics = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="customers" className="space-y-4">
+      <Tabs defaultValue="locations" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="locations">Location Analytics</TabsTrigger>
           <TabsTrigger value="customers">Customer Analytics</TabsTrigger>
           <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
           <TabsTrigger value="services">Service Performance</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="locations" className="space-y-4">
+          <LocationAnalytics />
+        </TabsContent>
         
         <TabsContent value="customers" className="space-y-4">
           <CustomerAnalytics />

@@ -14,6 +14,9 @@ import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Analytics from "./pages/Analytics";
+import Locations from "./pages/Locations";
+import Employees from "./pages/Employees";
+import Products from "./pages/Products";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -83,6 +86,21 @@ const App = () => (
             <Route path="/analytics" element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/locations" element={
+              <ProtectedRoute>
+                <Locations />
+              </ProtectedRoute>
+            } />
+            <Route path="/employees" element={
+              <ProtectedRoute>
+                <Employees />
+              </ProtectedRoute>
+            } />
+            <Route path="/products" element={
+              <ProtectedRoute>
+                <Products />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

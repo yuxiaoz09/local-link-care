@@ -20,8 +20,10 @@ export type Database = {
           created_at: string | null
           customer_id: string
           description: string | null
+          employee_id: string | null
           end_time: string
           id: string
+          location_id: string | null
           price: number | null
           service_id: string | null
           start_time: string
@@ -34,8 +36,10 @@ export type Database = {
           created_at?: string | null
           customer_id: string
           description?: string | null
+          employee_id?: string | null
           end_time: string
           id?: string
+          location_id?: string | null
           price?: number | null
           service_id?: string | null
           start_time: string
@@ -48,8 +52,10 @@ export type Database = {
           created_at?: string | null
           customer_id?: string
           description?: string | null
+          employee_id?: string | null
           end_time?: string
           id?: string
+          location_id?: string | null
           price?: number | null
           service_id?: string | null
           start_time?: string
@@ -205,6 +211,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          preferred_location_id: string | null
           tags: string[] | null
           updated_at: string | null
         }
@@ -217,6 +224,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          preferred_location_id?: string | null
           tags?: string[] | null
           updated_at?: string | null
         }
@@ -229,6 +237,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          preferred_location_id?: string | null
           tags?: string[] | null
           updated_at?: string | null
         }
@@ -241,6 +250,213 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      employees: {
+        Row: {
+          business_id: string
+          commission_rate: number | null
+          created_at: string | null
+          email: string | null
+          hire_date: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean | null
+          location_id: string | null
+          name: string
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          commission_rate?: number | null
+          created_at?: string | null
+          email?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          name: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          commission_rate?: number | null
+          created_at?: string | null
+          email?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          name?: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          created_at: string | null
+          current_stock: number | null
+          id: string
+          last_restocked: string | null
+          location_id: string
+          maximum_stock: number | null
+          minimum_stock: number | null
+          product_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          last_restocked?: string | null
+          location_id: string
+          maximum_stock?: number | null
+          minimum_stock?: number | null
+          product_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_stock?: number | null
+          id?: string
+          last_restocked?: string | null
+          location_id?: string
+          maximum_stock?: number | null
+          minimum_stock?: number | null
+          product_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      locations: {
+        Row: {
+          address: string | null
+          business_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          manager_id: string | null
+          name: string
+          operating_hours: Json | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name: string
+          operating_hours?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_id?: string | null
+          name?: string
+          operating_hours?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      product_sales: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          employee_id: string | null
+          id: string
+          location_id: string | null
+          product_id: string
+          quantity: number
+          sale_date: string | null
+          sale_price: number
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          product_id: string
+          quantity: number
+          sale_date?: string | null
+          sale_price: number
+          total_amount: number
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          employee_id?: string | null
+          id?: string
+          location_id?: string | null
+          product_id?: string
+          quantity?: number
+          sale_date?: string | null
+          sale_price?: number
+          total_amount?: number
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          business_id: string
+          category: string | null
+          cost_price: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          retail_price: number | null
+          sku: string | null
+          supplier: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          retail_price?: number | null
+          sku?: string | null
+          supplier?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          retail_price?: number | null
+          sku?: string | null
+          supplier?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       query_analytics: {
         Row: {
@@ -361,6 +577,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          location_id: string | null
           title: string
           updated_at: string | null
         }
@@ -372,6 +589,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          location_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -383,6 +601,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          location_id?: string | null
           title?: string
           updated_at?: string | null
         }
