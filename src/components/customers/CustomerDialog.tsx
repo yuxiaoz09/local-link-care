@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent } from '@/lib/security';
 import {
   Dialog,
   DialogContent,
@@ -83,6 +84,7 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
     e.preventDefault();
     
     if (!businessId) {
+      logSecurityEvent('Customer form submission without business ID');
       toast({
         title: "Error",
         description: "Business not found. Please try again.",
@@ -91,7 +93,9 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       return;
     }
 
-    if (!formData.name.trim()) {
+    // Security: Validate and sanitize all inputs
+    const sanitizedName = sanitizeText(formData.name);
+    if (!sanitizedName.trim()) {
       toast({
         title: "Error",
         description: "Customer name is required.",
@@ -100,13 +104,38 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       return;
     }
 
+    // Security: Validate email format if provided
+    if (formData.email && !isValidEmail(formData.email)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Security: Validate phone format if provided
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Security: Sanitize all form inputs
       const customerData = {
-        ...formData,
+        name: sanitizedName,
+        email: formData.email ? sanitizeText(formData.email) : null,
+        phone: formData.phone ? sanitizeText(formData.phone) : null,
+        address: formData.address ? sanitizeText(formData.address) : null,
+        notes: formData.notes ? sanitizeText(formData.notes) : null,
         business_id: businessId,
-        tags: tags.length > 0 ? tags : null,
+        tags: tags.length > 0 ? tags.map(tag => sanitizeText(tag)) : null,
       };
 
       if (customer) {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { sessionManager, logSecurityEvent } from '@/lib/security';
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Security: Log auth events and manage session timeout
+        if (event === 'SIGNED_IN') {
+          logSecurityEvent('User signed in', { userId: session?.user?.id });
+          sessionManager.startTimer(() => {
+            logSecurityEvent('Session timeout - auto logout');
+            supabase.auth.signOut();
+          });
+        } else if (event === 'SIGNED_OUT') {
+          logSecurityEvent('User signed out');
+          sessionManager.clearTimer();
+        }
       }
     );
 
@@ -41,9 +54,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Security: Start session timer for existing sessions
+      if (session) {
+        sessionManager.startTimer(() => {
+          logSecurityEvent('Session timeout - auto logout');
+          supabase.auth.signOut();
+        });
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      sessionManager.clearTimer();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {

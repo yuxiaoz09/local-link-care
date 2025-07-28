@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessSetup } from "@/hooks/useBusinessSetup";
+import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent } from "@/lib/security";
 
 interface Business {
   id: string;
@@ -75,7 +76,12 @@ export default function Settings() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !ownerEmail.trim()) {
+    
+    // Security: Validate and sanitize inputs
+    const sanitizedName = sanitizeText(name);
+    const sanitizedEmail = sanitizeText(ownerEmail);
+    
+    if (!sanitizedName.trim() || !sanitizedEmail.trim()) {
       toast({
         title: "Error",
         description: "Name and email are required",
@@ -84,13 +90,34 @@ export default function Settings() {
       return;
     }
 
+    // Security: Validate email format
+    if (!isValidEmail(sanitizedEmail)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Security: Validate phone if provided
+    if (phone && !isValidPhone(phone)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
+      // Security: Sanitize all inputs
       const businessData = {
-        name: name.trim(),
-        owner_email: ownerEmail.trim(),
-        phone: phone.trim() || null,
-        address: address.trim() || null,
+        name: sanitizedName,
+        owner_email: sanitizedEmail,
+        phone: phone ? sanitizeText(phone) : null,
+        address: address ? sanitizeText(address) : null,
       };
 
       let error;
