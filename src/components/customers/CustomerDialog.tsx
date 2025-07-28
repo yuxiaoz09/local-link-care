@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent, rateLimiter, RATE_LIMITS, sanitizeErrorMessage } from '@/lib/security';
+import { sanitizeText, validateCustomerInput, logSecurityEvent, rateLimiter, RATE_LIMITS, sanitizeErrorMessage } from '@/lib/security';
 import {
   Dialog,
   DialogContent,
@@ -103,36 +103,24 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       return;
     }
 
-    // Security: Validate and sanitize all inputs
+    // Security: Enhanced validation using security utilities
+    const validation = validateCustomerInput({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      notes: formData.notes
+    });
+
+    if (!validation.isValid) {
+      toast({
+        title: "Validation Error",
+        description: validation.errors.join('. '),
+        variant: "destructive",
+      });
+      return;
+    }
+
     const sanitizedName = sanitizeText(formData.name);
-    if (!sanitizedName.trim()) {
-      toast({
-        title: "Error",
-        description: "Customer name is required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Security: Validate email format if provided
-    if (formData.email && !isValidEmail(formData.email)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Security: Validate phone format if provided
-    if (formData.phone && !isValidPhone(formData.phone)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid phone number.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setLoading(true);
 
@@ -211,6 +199,7 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Customer name"
+              maxLength={100}
               required
             />
           </div>
@@ -254,6 +243,7 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Additional notes about the customer..."
               rows={3}
+              maxLength={2000}
             />
           </div>
 

@@ -18,14 +18,74 @@ export function sanitizeText(input: string): string {
 
 // Validate email format
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  return emailRegex.test(email) && email.length <= 254; // RFC 5321 limit
 }
 
-// Validate phone format (basic)
+// Validate phone format (enhanced)
 export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^[\+]?[\d\s\-\(\)]{10,}$/;
+  const phoneRegex = /^[\+]?[\d\s\-\(\)]{10,15}$/; // International phone number standard
   return phoneRegex.test(phone);
+}
+
+// Input length validation functions
+export function validateInputLength(input: string, maxLength: number, fieldName: string): { isValid: boolean; error?: string } {
+  if (!input) return { isValid: true };
+  
+  if (input.length > maxLength) {
+    return {
+      isValid: false,
+      error: `${fieldName} must be ${maxLength} characters or less`
+    };
+  }
+  return { isValid: true };
+}
+
+// Comprehensive input validation
+export function validateBusinessInput(data: { name: string; owner_email: string; phone?: string; address?: string }) {
+  const errors: string[] = [];
+  
+  const nameValidation = validateInputLength(data.name, 200, 'Business name');
+  if (!nameValidation.isValid) errors.push(nameValidation.error!);
+  
+  if (!isValidEmail(data.owner_email)) {
+    errors.push('Please enter a valid email address');
+  }
+  
+  if (data.phone && !isValidPhone(data.phone)) {
+    errors.push('Please enter a valid phone number');
+  }
+  
+  const addressValidation = validateInputLength(data.address || '', 500, 'Address');
+  if (!addressValidation.isValid) errors.push(addressValidation.error!);
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+export function validateCustomerInput(data: { name: string; email?: string; phone?: string; notes?: string }) {
+  const errors: string[] = [];
+  
+  const nameValidation = validateInputLength(data.name, 100, 'Customer name');
+  if (!nameValidation.isValid) errors.push(nameValidation.error!);
+  
+  if (data.email && !isValidEmail(data.email)) {
+    errors.push('Please enter a valid email address');
+  }
+  
+  if (data.phone && !isValidPhone(data.phone)) {
+    errors.push('Please enter a valid phone number');
+  }
+  
+  const notesValidation = validateInputLength(data.notes || '', 2000, 'Notes');
+  if (!notesValidation.isValid) errors.push(notesValidation.error!);
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
 }
 
 // Centralized rate limiting configuration
