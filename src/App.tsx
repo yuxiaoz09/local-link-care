@@ -13,6 +13,7 @@ import Appointments from "./pages/Appointments";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Analytics from "./pages/Analytics";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -77,6 +78,11 @@ const App = () => (
             <Route path="/reports" element={
               <ProtectedRoute>
                 <Reports />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

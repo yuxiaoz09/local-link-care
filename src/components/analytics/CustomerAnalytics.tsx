@@ -1,38 +1,35 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import CustomerSegmentBadge from './CustomerSegmentBadge';
+import { Link } from 'react-router-dom';
+import { TrendingUp, Users, DollarSign, Target } from 'lucide-react';
 
-interface CustomerAnalytics {
-  totalCustomers: number;
-  avgClv: number;
-  segmentDistribution: Array<{
-    segment: string;
-    count: number;
-    percentage: number;
-  }>;
-  topCustomersByClv: Array<{
-    id: string;
-    name: string;
-    clv: number;
-    segment: string;
-  }>;
+interface CustomerAnalyticsData {
+  id: string;
+  name: string;
+  email: string;
+  customer_lifetime_value: number;
+  total_spent: number;
+  total_appointments: number;
+  days_since_last_visit: number;
+  recency_score: number;
+  frequency_score: number;
+  monetary_score: number;
 }
 
-const COLORS = {
-  Champions: '#10b981',
-  Loyal: '#3b82f6',
-  'At-Risk': '#f59e0b',
-  Lost: '#ef4444',
-  New: '#8b5cf6',
-  Potential: '#6b7280'
-};
+interface SegmentSummary {
+  segment: string;
+  count: number;
+  totalValue: number;
+}
 
-export const CustomerAnalytics = () => {
+const CustomerAnalytics = () => {
   const { user } = useAuth();
-  const [analytics, setAnalytics] = useState<CustomerAnalytics | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<CustomerAnalyticsData[]>([]);
+  const [segmentSummary, setSegmentSummary] = useState<SegmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +40,6 @@ export const CustomerAnalytics = () => {
 
   const fetchCustomerAnalytics = async () => {
     try {
-      // Get user's business
       const { data: business } = await supabase
         .from('businesses')
         .select('id')
@@ -52,58 +48,38 @@ export const CustomerAnalytics = () => {
 
       if (!business) return;
 
-      // Fetch customer analytics data
-      const { data: customersData } = await supabase
+      const { data, error } = await supabase
         .from('customer_analytics')
         .select('*')
         .eq('business_id', business.id);
 
-      if (!customersData) return;
+      if (error) throw error;
 
-      // Calculate segments for each customer
-      const customersWithSegments = customersData.map(customer => {
-        const segment = getCustomerSegment(
-          customer.recency_score,
-          customer.frequency_score,
-          customer.monetary_score
-        );
-        return { ...customer, segment };
-      });
-
-      // Calculate segment distribution
-      const segmentCounts = customersWithSegments.reduce((acc, customer) => {
-        acc[customer.segment] = (acc[customer.segment] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const totalCustomers = customersWithSegments.length;
-      const segmentDistribution = Object.entries(segmentCounts).map(([segment, count]) => ({
-        segment,
-        count,
-        percentage: Math.round((count / totalCustomers) * 100)
-      }));
-
-      // Get top customers by CLV
-      const topCustomersByClv = customersWithSegments
-        .sort((a, b) => b.customer_lifetime_value - a.customer_lifetime_value)
-        .slice(0, 10)
-        .map(customer => ({
-          id: customer.id,
-          name: customer.name,
-          clv: customer.customer_lifetime_value,
-          segment: customer.segment
+      if (data) {
+        const analyticsWithSegments = data.map(customer => ({
+          ...customer,
+          segment: getCustomerSegment(
+            customer.recency_score,
+            customer.frequency_score, 
+            customer.monetary_score
+          )
         }));
 
-      // Calculate average CLV
-      const avgClv = customersWithSegments.reduce((sum, customer) => 
-        sum + customer.customer_lifetime_value, 0) / totalCustomers;
+        setAnalyticsData(analyticsWithSegments);
 
-      setAnalytics({
-        totalCustomers,
-        avgClv,
-        segmentDistribution,
-        topCustomersByClv
-      });
+        // Calculate segment summary
+        const segments = analyticsWithSegments.reduce((acc: Record<string, SegmentSummary>, customer) => {
+          const segment = customer.segment;
+          if (!acc[segment]) {
+            acc[segment] = { segment, count: 0, totalValue: 0 };
+          }
+          acc[segment].count++;
+          acc[segment].totalValue += customer.customer_lifetime_value;
+          return acc;
+        }, {});
+
+        setSegmentSummary(Object.values(segments));
+      }
     } catch (error) {
       console.error('Error fetching customer analytics:', error);
     } finally {
@@ -120,135 +96,119 @@ export const CustomerAnalytics = () => {
     return 'Potential';
   };
 
-  if (loading) {
-    return <div>Loading customer analytics...</div>;
-  }
+  const highValueCustomers = analyticsData
+    .sort((a, b) => b.customer_lifetime_value - a.customer_lifetime_value)
+    .slice(0, Math.ceil(analyticsData.length * 0.2)); // Top 20%
 
-  if (!analytics) {
-    return <div>No analytics data available</div>;
+  const totalCLV = analyticsData.reduce((sum, customer) => sum + customer.customer_lifetime_value, 0);
+  const avgCLV = analyticsData.length > 0 ? totalCLV / analyticsData.length : 0;
+
+  if (loading) {
+    return <div className="flex items-center justify-center p-8">Loading analytics...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total CLV</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalCustomers}</div>
+            <div className="text-2xl font-bold">${totalCLV.toFixed(0)}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Average CLV</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${analytics.avgClv.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${avgCLV.toFixed(0)}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Top Segment</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">High-Value Customers</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {analytics.segmentDistribution[0]?.segment || 'N/A'}
-            </div>
+            <div className="text-2xl font-bold">{highValueCustomers.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analyticsData.length}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Segment Distribution Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Segmentation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={analytics.segmentDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ segment, percentage }) => `${segment}: ${percentage}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
-                  >
-                    {analytics.segmentDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[entry.segment as keyof typeof COLORS]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Customers by CLV */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Customers by CLV</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analytics.topCustomersByClv.map((customer, index) => (
-                <div key={customer.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <p className="font-medium">{customer.name}</p>
-                    <Badge 
-                      variant="outline" 
-                      className="text-xs"
-                      style={{ 
-                        backgroundColor: `${COLORS[customer.segment as keyof typeof COLORS]}20`,
-                        borderColor: COLORS[customer.segment as keyof typeof COLORS],
-                        color: COLORS[customer.segment as keyof typeof COLORS]
-                      }}
-                    >
-                      {customer.segment}
-                    </Badge>
-                  </div>
-                  <div className="text-lg font-bold">${customer.clv.toFixed(2)}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Segment Distribution Bar Chart */}
+      {/* Customer Segments */}
       <Card>
         <CardHeader>
-          <CardTitle>Segment Distribution Details</CardTitle>
+          <CardTitle>Customer Segments</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.segmentDistribution}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="segment" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="count" name="Customer Count">
-                  {analytics.segmentDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[entry.segment as keyof typeof COLORS]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {segmentSummary.map((segment) => (
+              <div key={segment.segment} className="text-center">
+                <CustomerSegmentBadge segment={segment.segment} className="mb-2" />
+                <div className="text-lg font-semibold">{segment.count}</div>
+                <div className="text-sm text-muted-foreground">
+                  ${segment.totalValue.toFixed(0)} CLV
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* High-Value Customers */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>High-Value Customers (Top 20%)</CardTitle>
+          <Button asChild variant="outline">
+            <Link to="/customers">View All</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {highValueCustomers.slice(0, 10).map((customer) => (
+              <div key={customer.id} className="flex justify-between items-center p-3 bg-accent rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div>
+                    <p className="font-medium">{customer.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {customer.email} • {customer.total_appointments} appointments
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">${customer.customer_lifetime_value.toFixed(0)}</div>
+                  <CustomerSegmentBadge 
+                    segment={getCustomerSegment(
+                      customer.recency_score,
+                      customer.frequency_score,
+                      customer.monetary_score
+                    )} 
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
     </div>
   );
 };
+
+export default CustomerAnalytics;

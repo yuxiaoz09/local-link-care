@@ -13,8 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import CustomerDialog from '@/components/customers/CustomerDialog';
-import { CustomerSegmentBadge } from "@/components/analytics/CustomerSegmentBadge";
-import { CustomerAnalytics } from "@/components/analytics/CustomerAnalytics";
+import CustomerSegmentBadge from "@/components/analytics/CustomerSegmentBadge";
+import CustomerAnalytics from "@/components/analytics/CustomerAnalytics";
 
 interface Customer {
   id: string;

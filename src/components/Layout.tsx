@@ -8,6 +8,7 @@ import {
   Calendar, 
   CheckSquare, 
   BarChart3, 
+  TrendingUp,
   Settings,
   LogOut,
   Menu
@@ -34,6 +35,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/appointments', icon: Calendar, label: 'Appointments' },
     { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
+    { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 

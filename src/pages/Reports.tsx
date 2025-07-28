@@ -6,7 +6,7 @@ import { CalendarDays, Users, Clock, DollarSign, TrendingUp, CheckCircle } from 
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { RevenueAnalytics } from "@/components/analytics/RevenueAnalytics";
-import { CustomerAnalytics } from "@/components/analytics/CustomerAnalytics";
+import CustomerAnalytics from "@/components/analytics/CustomerAnalytics";
 
 interface ReportData {
   totalCustomers: number;
