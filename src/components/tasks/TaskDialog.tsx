@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { sanitizeText, isValidEmail, rateLimiter, logSecurityEvent } from "@/lib/security";
+import { sanitizeText, isValidEmail, rateLimiter, logSecurityEvent, sanitizeErrorMessage, RATE_LIMITS } from "@/lib/security";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Task {

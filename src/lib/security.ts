@@ -28,6 +28,14 @@ export function isValidPhone(phone: string): boolean {
   return phoneRegex.test(phone);
 }
 
+// Centralized rate limiting configuration
+export const RATE_LIMITS = {
+  CHAT_QUERY: { maxAttempts: 10, windowMs: 60000 }, // 10 per minute
+  TASK_CREATION: { maxAttempts: 10, windowMs: 60000 }, // 10 per minute
+  CUSTOMER_CREATION: { maxAttempts: 10, windowMs: 60000 }, // 10 per minute
+  AUTH_ATTEMPTS: { maxAttempts: 5, windowMs: 300000 }, // 5 per 5 minutes
+} as const;
+
 // Rate limiting helper for client-side
 class RateLimiter {
   private attempts: Map<string, number[]> = new Map();
@@ -40,6 +48,7 @@ class RateLimiter {
     const validAttempts = attempts.filter(time => now - time < windowMs);
     
     if (validAttempts.length >= maxAttempts) {
+      logSecurityEvent('Rate limit exceeded', { key, attempts: validAttempts.length });
       return false;
     }
     
@@ -47,14 +56,86 @@ class RateLimiter {
     this.attempts.set(key, validAttempts);
     return true;
   }
+
+  // Helper method using centralized config
+  checkLimit(action: keyof typeof RATE_LIMITS, userId: string): boolean {
+    const config = RATE_LIMITS[action];
+    const key = `${action}_${userId}`;
+    return this.isAllowed(key, config.maxAttempts, config.windowMs);
+  }
 }
 
 export const rateLimiter = new RateLimiter();
 
-// Security event logging
+// Enhanced security event logging with sanitization
 export function logSecurityEvent(event: string, details?: any) {
-  console.warn(`[SECURITY] ${event}`, details);
+  const sanitizedDetails = details ? sanitizeLogData(details) : undefined;
+  console.warn(`[SECURITY] ${event}`, sanitizedDetails);
   // In production, this could send to a logging service
+}
+
+// Sanitize data before logging to prevent information disclosure
+function sanitizeLogData(data: any): any {
+  if (typeof data === 'string') {
+    return sanitizeText(data);
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(sanitizeLogData);
+  }
+  
+  if (data && typeof data === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      // Exclude sensitive fields from logs
+      if (['password', 'token', 'secret', 'key', 'auth'].some(field => key.toLowerCase().includes(field))) {
+        sanitized[key] = '[REDACTED]';
+      } else {
+        sanitized[key] = sanitizeLogData(value);
+      }
+    }
+    return sanitized;
+  }
+  
+  return data;
+}
+
+// Sanitize error messages for user display
+export function sanitizeErrorMessage(error: any): string {
+  if (!error) return 'An unexpected error occurred';
+  
+  const message = error.message || error.toString();
+  
+  // Generic messages for security-sensitive errors
+  const securityPatterns = [
+    /access denied/i,
+    /invalid business access/i,
+    /permission denied/i,
+    /unauthorized/i,
+    /authentication/i,
+    /function.*does not exist/i,
+    /relation.*does not exist/i,
+    /column.*does not exist/i,
+  ];
+  
+  for (const pattern of securityPatterns) {
+    if (pattern.test(message)) {
+      logSecurityEvent('Security error sanitized', { originalError: message });
+      return 'Access denied. Please check your permissions.';
+    }
+  }
+  
+  // Sanitize database-specific errors
+  if (message.includes('duplicate key value') || message.includes('violates')) {
+    return 'The operation could not be completed due to a data constraint.';
+  }
+  
+  if (message.includes('connection') || message.includes('timeout')) {
+    return 'Service temporarily unavailable. Please try again.';
+  }
+  
+  // Default sanitization for other errors
+  return sanitizeText(message).substring(0, 200); // Limit length
 }
 
 // Session timeout management

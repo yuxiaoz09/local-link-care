@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent } from '@/lib/security';
+import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent, rateLimiter, RATE_LIMITS, sanitizeErrorMessage } from '@/lib/security';
 import {
   Dialog,
   DialogContent,
@@ -93,6 +93,16 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       return;
     }
 
+    // Rate limiting check
+    if (!rateLimiter.checkLimit('CUSTOMER_CREATION', businessId)) {
+      toast({
+        title: "Rate limit exceeded",
+        description: "Too many customer operations. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Security: Validate and sanitize all inputs
     const sanitizedName = sanitizeText(formData.name);
     if (!sanitizedName.trim()) {
@@ -167,10 +177,16 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
 
       onSuccess();
     } catch (error) {
-      console.error('Error saving customer:', error);
+      const sanitizedError = sanitizeErrorMessage(error);
+      logSecurityEvent('Customer save error', { 
+        businessId, 
+        operation: customer ? 'update' : 'create',
+        error: sanitizedError 
+      });
+      
       toast({
         title: "Error",
-        description: `Failed to ${customer ? 'update' : 'add'} customer.`,
+        description: sanitizedError,
         variant: "destructive",
       });
     } finally {

@@ -1,21 +1,37 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ParsedQuery, QueryResult, CustomerResult, RevenueResult, AppointmentResult } from '@/types/chat';
 import { getDateRange } from './queryParser';
-import { sanitizeInput } from '@/lib/security';
+import { sanitizeInput, sanitizeErrorMessage, logSecurityEvent, rateLimiter, RATE_LIMITS } from '@/lib/security';
 
 export async function processQuery(query: ParsedQuery, businessId: string): Promise<QueryResult> {
   try {
+    // Rate limiting check
+    const userId = businessId; // Use businessId as user identifier
+    if (!rateLimiter.checkLimit('CHAT_QUERY', userId)) {
+      logSecurityEvent('Chat query rate limit exceeded', { businessId, query: query.intent });
+      return {
+        type: 'error',
+        data: null,
+        summary: "Too many requests. Please wait a moment before trying again.",
+        followUpSuggestions: [
+          "Try again in a minute",
+          "Contact support if you need higher limits"
+        ]
+      };
+    }
+
     const dateRange = getDateRange(query.timeframe);
     const startDate = dateRange.start.toISOString().split('T')[0];
     const endDate = dateRange.end.toISOString().split('T')[0];
 
-    // Log analytics access
+    // Log analytics access with enhanced security
     await supabase.rpc('log_analytics_access', {
       p_action: 'CHAT_QUERY',
       p_resource: `${query.intent}_${query.metric || 'general'}`,
       p_details: { 
         query: sanitizeInput(JSON.stringify(query)),
-        timeframe: query.timeframe 
+        timeframe: query.timeframe,
+        timestamp: new Date().toISOString()
       }
     });
 
@@ -42,11 +58,17 @@ export async function processQuery(query: ParsedQuery, businessId: string): Prom
         };
     }
   } catch (error) {
-    console.error('Error processing query:', error);
+    const sanitizedError = sanitizeErrorMessage(error);
+    logSecurityEvent('Query processing error', { 
+      businessId, 
+      query: query.intent, 
+      error: sanitizedError 
+    });
+    
     return {
       type: 'error',
       data: null,
-      summary: "I encountered an error processing your request. Please try again.",
+      summary: sanitizedError,
       followUpSuggestions: [
         "Who is my best customer this month?",
         "How much revenue did I make today?",
@@ -69,7 +91,10 @@ async function processCustomerQuery(
       end_date: endDate
     });
 
-    if (error) throw error;
+    if (error) {
+      logSecurityEvent('Database query error', { function: 'get_best_customer_period', error: error.message });
+      throw error;
+    }
 
     if (!data || data.length === 0) {
       return {
@@ -103,7 +128,10 @@ async function processCustomerQuery(
       days_threshold: 30
     });
 
-    if (error) throw error;
+    if (error) {
+      logSecurityEvent('Database query error', { function: 'get_at_risk_customers', error: error.message });
+      throw error;
+    }
 
     return {
       type: 'list',
@@ -125,7 +153,10 @@ async function processCustomerQuery(
     .ilike('name', query.entity ? `%${sanitizeInput(query.entity)}%` : '%')
     .limit(10);
 
-  if (error) throw error;
+  if (error) {
+    logSecurityEvent('Database query error', { function: 'customers_search', error: error.message });
+    throw error;
+  }
 
   return {
     type: 'list',
@@ -153,7 +184,10 @@ async function processRevenueQuery(
     end_date: endDate
   });
 
-  if (error) throw error;
+  if (error) {
+    logSecurityEvent('Database query error', { function: 'get_revenue_period', error: error.message });
+    throw error;
+  }
 
   if (!data || data.length === 0) {
     return {
@@ -195,7 +229,10 @@ async function processAppointmentQuery(
     end_date: endDate
   });
 
-  if (error) throw error;
+  if (error) {
+    logSecurityEvent('Database query error', { function: 'get_appointments_period', error: error.message });
+    throw error;
+  }
 
   const appointments = data || [];
   const timeframeText = query.timeframe.replace('-', ' ');

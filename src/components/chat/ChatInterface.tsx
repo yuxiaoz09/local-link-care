@@ -10,7 +10,7 @@ import { ChatSuggestions } from './ChatSuggestions';
 import { parseQuery } from '@/utils/queryParser';
 import { processQuery } from '@/utils/queryProcessor';
 import { useBusinessSetup } from '@/hooks/useBusinessSetup';
-import { sanitizeInput } from '@/lib/security';
+import { sanitizeInput, rateLimiter, RATE_LIMITS, sanitizeErrorMessage, logSecurityEvent } from '@/lib/security';
 import { useToast } from '@/components/ui/use-toast';
 
 export const ChatInterface: React.FC = () => {
@@ -81,7 +81,15 @@ export const ChatInterface: React.FC = () => {
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isLoading || !businessData?.id) return;
 
-    if (!checkRateLimit()) return;
+    // Use centralized rate limiting
+    if (!rateLimiter.checkLimit('CHAT_QUERY', businessData.id)) {
+      toast({
+        title: "Rate limit exceeded",
+        description: "Please wait a moment before asking another question.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const sanitizedMessage = sanitizeInput(message.trim());
     const userMessage: ChatMessage = {
@@ -121,11 +129,16 @@ export const ChatInterface: React.FC = () => {
 
       setMessages(prev => [...prev.slice(0, -1), responseMessage]);
     } catch (error) {
-      console.error('Error processing message:', error);
+      const sanitizedError = sanitizeErrorMessage(error);
+      logSecurityEvent('Chat message processing error', { 
+        businessId: businessData.id, 
+        error: sanitizedError 
+      });
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
         type: 'assistant',
-        message: 'I encountered an error processing your request. Please try again.',
+        message: sanitizedError,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
