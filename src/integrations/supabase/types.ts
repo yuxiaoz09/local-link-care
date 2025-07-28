@@ -204,6 +204,39 @@ export type Database = {
           },
         ]
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           base_price: number | null
@@ -352,6 +385,10 @@ export type Database = {
       get_customer_segment: {
         Args: { r_score: number; f_score: number; m_score: number }
         Returns: string
+      }
+      log_analytics_access: {
+        Args: { p_action: string; p_resource: string; p_details?: Json }
+        Returns: undefined
       }
     }
     Enums: {

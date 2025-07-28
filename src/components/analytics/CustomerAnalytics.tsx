@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import CustomerSegmentBadge from './CustomerSegmentBadge';
 import { Link } from 'react-router-dom';
 import { TrendingUp, Users, DollarSign, Target } from 'lucide-react';
+import { logSecurityEvent } from '@/lib/security';
 
 interface CustomerAnalyticsData {
   id: string;
@@ -53,7 +54,19 @@ const CustomerAnalytics = () => {
         .select('*')
         .eq('business_id', business.id);
 
-      if (error) throw error;
+      if (error) {
+        logSecurityEvent('Failed to load customer analytics', { 
+          businessId: business.id, 
+          error: error.message 
+        });
+        throw error;
+      }
+
+      // Log successful analytics access for audit trail
+      logSecurityEvent('Customer analytics accessed', { 
+        businessId: business.id, 
+        recordCount: data?.length || 0 
+      });
 
       if (data) {
         const analyticsWithSegments = data.map(customer => ({

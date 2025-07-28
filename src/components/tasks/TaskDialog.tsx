@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeText, isValidEmail, rateLimiter, logSecurityEvent } from "@/lib/security";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Task {
@@ -64,20 +65,112 @@ export function TaskDialog({ open, onOpenChange, onSave, task, customers }: Task
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    
+    // Rate limiting protection
+    if (!rateLimiter.isAllowed('task-creation', 10, 60000)) { // 10 attempts per minute
+      logSecurityEvent('Rate limit exceeded for task creation');
+      toast({
+        title: "Too Many Attempts",
+        description: "Please wait before creating another task",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Input validation and sanitization
+    const sanitizedTitle = sanitizeText(title).trim();
+    const sanitizedDescription = sanitizeText(description).trim();
+    
+    if (!sanitizedTitle) {
+      toast({
+        title: "Error",
+        description: "Task title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sanitizedTitle.length > 200) {
+      toast({
+        title: "Error",
+        description: "Task title must be less than 200 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sanitizedDescription.length > 1000) {
+      toast({
+        title: "Error",
+        description: "Task description must be less than 1000 characters",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
-    try {
-      const { data: business } = await supabase
-        .from("businesses")
-        .select("id")
-        .single();
 
-      if (!business) throw new Error("No business found");
+    let user = null;
+    try {
+      // Get the user's business ID with secure lookup
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      user = currentUser;
+      if (!user) {
+        logSecurityEvent('Unauthorized task creation attempt');
+        toast({
+          title: "Error",
+          description: "You must be logged in to create tasks",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Secure business lookup using RLS-protected query
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('id')
+        .single(); // RLS ensures only user's business is returned
+
+      if (businessError || !business) {
+        logSecurityEvent('Failed business lookup for task creation', { 
+          userId: user.id, 
+          error: businessError?.message 
+        });
+        toast({
+          title: "Error",
+          description: "Could not find your business information",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate customer belongs to business if specified
+      if (customerId) {
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('id', customerId)
+          .eq('business_id', business.id)
+          .single();
+
+        if (customerError || !customer) {
+          logSecurityEvent('Invalid customer selection for task', { 
+            userId: user.id, 
+            customerId, 
+            businessId: business.id 
+          });
+          toast({
+            title: "Error",
+            description: "Selected customer is not valid",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       const taskData = {
-        title: title.trim(),
-        description: description.trim() || null,
+        title: sanitizedTitle,
+        description: sanitizedDescription || null,
         due_date: dueDate || null,
         customer_id: customerId || null,
         business_id: business.id,
@@ -85,28 +178,61 @@ export function TaskDialog({ open, onOpenChange, onSave, task, customers }: Task
 
       let error;
       if (task) {
+        // Update existing task
         ({ error } = await supabase
-          .from("tasks")
+          .from('tasks')
           .update(taskData)
-          .eq("id", task.id));
+          .eq('id', task.id));
+        
+        if (!error) {
+          logSecurityEvent('Task updated', { taskId: task.id, businessId: business.id });
+        }
       } else {
+        // Create new task
         ({ error } = await supabase
-          .from("tasks")
+          .from('tasks')
           .insert([taskData]));
+        
+        if (!error) {
+          logSecurityEvent('Task created', { businessId: business.id });
+        }
       }
 
-      if (error) throw error;
+      if (error) {
+        logSecurityEvent('Task save failed', { 
+          userId: user.id, 
+          error: error.message,
+          isUpdate: !!task 
+        });
+        toast({
+          title: "Error",
+          description: "Failed to save task. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "Success",
-        description: `Task ${task ? "updated" : "created"} successfully`,
+        description: task ? "Task updated successfully!" : "Task created successfully!",
       });
 
       onSave();
+      onOpenChange(false);
+      
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setCustomerId("");
     } catch (error) {
+      logSecurityEvent('Task operation error', { 
+        userId: user?.id, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
       toast({
         title: "Error",
-        description: `Failed to ${task ? "update" : "create"} task`,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

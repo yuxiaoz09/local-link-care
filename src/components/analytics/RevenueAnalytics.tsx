@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Users, Calendar } from 'lucide-react';
+import { logSecurityEvent } from '@/lib/security';
 
 interface RevenueData {
   month: string;
@@ -52,12 +53,26 @@ export const RevenueAnalytics = () => {
       if (!business) return;
 
       // Fetch revenue analytics data
-      const { data: revenueAnalyticsData } = await supabase
+      const { data: revenueAnalyticsData, error: revenueError } = await supabase
         .from('revenue_analytics')
         .select('*')
         .eq('business_id', business.id)
         .order('month', { ascending: true })
         .limit(12);
+
+      if (revenueError) {
+        logSecurityEvent('Failed to load revenue analytics', { 
+          businessId: business.id, 
+          error: revenueError.message 
+        });
+        throw revenueError;
+      }
+
+      // Log successful analytics access for audit trail
+      logSecurityEvent('Revenue analytics accessed', { 
+        businessId: business.id, 
+        recordCount: revenueAnalyticsData?.length || 0 
+      });
 
       if (revenueAnalyticsData) {
         const formattedData = revenueAnalyticsData.map(item => ({
