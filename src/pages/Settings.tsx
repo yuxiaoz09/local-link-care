@@ -38,24 +38,38 @@ export default function Settings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log("No authenticated user found");
         setLoading(false);
         return;
       }
 
+      console.log("Fetching business for user:", user.id);
       const { data, error } = await supabase
         .from("businesses")
         .select("*")
         .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (error) {
         console.error("Error fetching business:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load business information",
-          variant: "destructive",
-        });
+        if (error.code === 'PGRST116') {
+          // No business found - this is expected for new users
+          console.log("No business found for user, this is normal for new users");
+          setBusiness(null);
+          setName("");
+          setOwnerEmail("");
+          setPhone("");
+          setAddress("");
+        } else {
+          toast({
+            title: "Load Error",
+            description: "Failed to load business information. Please try refreshing the page.",
+            variant: "destructive",
+          });
+        }
       } else if (data) {
+        console.log("Business data loaded:", data);
         setBusiness(data);
         setName(data.name);
         setOwnerEmail(data.owner_email);
@@ -63,10 +77,10 @@ export default function Settings() {
         setAddress(data.address || "");
       }
     } catch (error) {
-      console.error("Error fetching business:", error);
+      console.error("Unexpected error fetching business:", error);
       toast({
-        title: "Error",
-        description: "Failed to load business information",
+        title: "Load Error",
+        description: "An unexpected error occurred while loading business information",
         variant: "destructive",
       });
     } finally {
@@ -120,38 +134,68 @@ export default function Settings() {
         address: address ? sanitizeText(address) : null,
       };
 
+      console.log("Saving business data:", businessData);
+      console.log("Current business state:", business);
+
       let error;
-      if (business) {
-        ({ error } = await supabase
+      let result;
+      
+      if (business && business.id) {
+        console.log("Updating existing business with ID:", business.id);
+        ({ data: result, error } = await supabase
           .from("businesses")
           .update(businessData)
-          .eq("id", business.id));
+          .eq("id", business.id)
+          .select()
+          .single());
       } else {
+        console.log("Creating new business");
         // Get current user ID
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("No authenticated user");
 
-        ({ error } = await supabase
+        ({ data: result, error } = await supabase
           .from("businesses")
-          .insert([{ ...businessData, user_id: user.id }]));
+          .insert([{ ...businessData, user_id: user.id }])
+          .select()
+          .single());
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
+      console.log("Save successful, result:", result);
+      
       toast({
         title: "Success",
         description: "Business information saved successfully",
       });
 
-      // Refresh the business data
-      fetchBusiness();
+      // Update local state with the saved data
+      if (result) {
+        setBusiness(result);
+      }
+      
       // Refresh the business setup hook state
       refetch();
     } catch (error) {
       console.error("Error saving business:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to save business information";
+      if (error.code === '23505') {
+        errorMessage = "A business profile already exists for this account";
+      } else if (error.message?.includes('user_id')) {
+        errorMessage = "Authentication error. Please sign out and sign back in.";
+      } else if (error.message?.includes('network')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to save business information",
+        title: "Save Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

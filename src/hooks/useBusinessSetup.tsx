@@ -33,22 +33,31 @@ export function useBusinessSetup() {
         .from("businesses")
         .select("*")
         .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       console.log('🏢 useBusinessSetup: Query result', { data, error, hasData: !!data });
 
       if (error) {
-        console.error("🏢 useBusinessSetup: Error checking business:", error);
-        setHasBusiness(false);
-        setBusinessData(null);
+        if (error.code === 'PGRST116') {
+          // No business found - this is expected for new users
+          console.log('🏢 useBusinessSetup: No business found, this is normal for new users');
+          setHasBusiness(false);
+          setBusinessData(null);
+        } else {
+          console.error("🏢 useBusinessSetup: Database error:", error);
+          setHasBusiness(false);
+          setBusinessData(null);
+        }
       } else {
         setHasBusiness(!!data);
         setBusinessData(data);
         console.log('🏢 useBusinessSetup: Business setup complete', { hasBusiness: !!data });
       }
     } catch (error) {
-      console.error("🏢 useBusinessSetup: Catch block error:", error);
+      console.error("🏢 useBusinessSetup: Unexpected error:", error);
       setHasBusiness(false);
+      setBusinessData(null);
     } finally {
       console.log('🏢 useBusinessSetup: Setting loading to false');
       setLoading(false);
@@ -64,7 +73,8 @@ export function useBusinessSetup() {
         .from("businesses")
         .select("id")
         .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (existingBusiness) {
         setHasBusiness(true);
