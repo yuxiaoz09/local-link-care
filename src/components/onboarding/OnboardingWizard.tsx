@@ -27,10 +27,9 @@ export interface OnboardingData {
 
 const STEPS = [
   { id: 1, title: 'Business Type', description: 'Select your business type' },
-  { id: 2, title: 'Services', description: 'Choose your services' },
-  { id: 3, title: 'Customize', description: 'Customize services' },
-  { id: 4, title: 'Staff', description: 'Add team members' },
-  { id: 5, title: 'Complete', description: 'Finish setup' }
+  { id: 2, title: 'Services', description: 'Choose & customize services' },
+  { id: 3, title: 'Staff', description: 'Add team members' },
+  { id: 4, title: 'Complete', description: 'Finish setup' }
 ];
 
 export function OnboardingWizard({ businessId, onComplete }: OnboardingWizardProps) {
@@ -193,15 +192,6 @@ export function OnboardingWizard({ businessId, onComplete }: OnboardingWizardPro
         );
       case 3:
         return (
-          <ServiceCustomization
-            selectedServices={onboardingData.selectedServices}
-            onNext={handleNext}
-            onBack={handleBack}
-            loading={loading}
-          />
-        );
-      case 4:
-        return (
           <StaffSetup
             businessId={businessId}
             services={[...onboardingData.selectedServices, ...onboardingData.customServices]}
@@ -210,7 +200,7 @@ export function OnboardingWizard({ businessId, onComplete }: OnboardingWizardPro
             loading={loading}
           />
         );
-      case 5:
+      case 4:
         return (
           <OnboardingComplete
             businessId={businessId}
