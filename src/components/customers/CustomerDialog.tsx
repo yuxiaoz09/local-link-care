@@ -84,7 +84,15 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
         p_customer_id: customerId,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error loading customer tags:', error);
+        logSecurityEvent('Failed to load customer tags', { 
+          customerId, 
+          error: error.message,
+          function: 'get_customer_tags_with_assignments'
+        });
+        throw error;
+      }
 
       const tags = data?.map((tag: any) => ({
         tag_id: tag.tag_id,
@@ -96,6 +104,11 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       setSelectedTags(tags);
     } catch (error) {
       console.error('Error loading customer tags:', error);
+      toast({
+        title: "Warning",
+        description: "Failed to load customer tags. You can still save the customer.",
+        variant: "destructive",
+      });
     }
   };
 
