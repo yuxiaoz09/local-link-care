@@ -68,6 +68,12 @@ const Customers = () => {
 
   const fetchBusinessAndCustomers = async () => {
     try {
+      console.log('🔐 Customers: Starting fetch with user:', { 
+        userId: user?.id, 
+        userEmail: user?.email,
+        sessionExists: !!user 
+      });
+
       // Get user's business
       const { data: business } = await supabase
         .from('businesses')
@@ -75,7 +81,13 @@ const Customers = () => {
         .eq('user_id', user?.id)
         .maybeSingle();
 
+      console.log('🔐 Customers: Business query result:', { 
+        businessId: business?.id, 
+        hasData: !!business 
+      });
+
       if (!business) {
+        console.log('🔐 Customers: No business found for user');
         toast({
           title: "Setup Required",
           description: "Please set up your business profile first.",
@@ -96,9 +108,40 @@ const Customers = () => {
 
       setBusinessId(business.id);
 
+      // Test auth token by checking current session
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Customers: Current session check:', { 
+        hasSession: !!session,
+        userId: session?.user?.id,
+        accessToken: session?.access_token ? 'present' : 'missing'
+      });
+
+      // Test direct customer query first
+      console.log('🔐 Customers: Testing direct customer query...');
+      const { data: directCustomers, error: directError } = await supabase
+        .from('customers')
+        .select('id, name, email, business_id')
+        .eq('business_id', business.id)
+        .limit(5);
+
+      console.log('🔐 Customers: Direct query result:', { 
+        customerCount: directCustomers?.length || 0, 
+        directError: directError?.message,
+        sampleCustomer: directCustomers?.[0]
+      });
+
       // Fetch customers with analytics data using secure function
+      console.log('🔐 Customers: Calling get_customer_analytics RPC...');
       const { data: customersData, error } = await supabase
         .rpc('get_customer_analytics', { business_uuid: business.id });
+
+      console.log('🔐 Customers: RPC result:', { 
+        dataCount: customersData?.length || 0, 
+        error: error?.message,
+        errorCode: error?.code,
+        errorDetails: error?.details,
+        errorHint: error?.hint
+      });
 
       if (error) throw error;
 

@@ -41,22 +41,59 @@ const CustomerAnalytics = () => {
 
   const fetchCustomerAnalytics = async () => {
     try {
+      console.log('🔐 CustomerAnalytics: Starting fetch with user:', { 
+        userId: user?.id, 
+        userEmail: user?.email,
+        sessionExists: !!user 
+      });
+
       const { data: business } = await supabase
         .from('businesses')
         .select('id')
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      if (!business) return;
+      console.log('🔐 CustomerAnalytics: Business query result:', { 
+        businessId: business?.id, 
+        hasData: !!business 
+      });
 
-      // Use the secure function instead of the view
+      if (!business) {
+        console.log('🔐 CustomerAnalytics: No business found for user');
+        return;
+      }
+
+      // Test direct customer query first to isolate auth vs function issue
+      console.log('🔐 CustomerAnalytics: Testing direct customer query...');
+      const { data: directCustomers, error: directError } = await supabase
+        .from('customers')
+        .select('id, name, email')
+        .eq('business_id', business.id)
+        .limit(5);
+
+      console.log('🔐 CustomerAnalytics: Direct query result:', { 
+        customerCount: directCustomers?.length || 0, 
+        directError: directError?.message 
+      });
+
+      // Now try the RPC function
+      console.log('🔐 CustomerAnalytics: Calling get_customer_analytics RPC...');
       const { data, error } = await supabase
         .rpc('get_customer_analytics', { business_uuid: business.id });
+
+      console.log('🔐 CustomerAnalytics: RPC result:', { 
+        dataCount: data?.length || 0, 
+        error: error?.message,
+        errorCode: error?.code,
+        errorDetails: error?.details 
+      });
 
       if (error) {
         logSecurityEvent('Failed to load customer analytics', { 
           businessId: business.id, 
-          error: error.message 
+          error: error.message,
+          errorCode: error.code,
+          errorDetails: error.details
         });
         throw error;
       }
