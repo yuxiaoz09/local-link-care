@@ -31,6 +31,7 @@ export type Database = {
           status: string | null
           title: string
           updated_at: string | null
+          widget_source: string | null
         }
         Insert: {
           business_id: string
@@ -48,6 +49,7 @@ export type Database = {
           status?: string | null
           title: string
           updated_at?: string | null
+          widget_source?: string | null
         }
         Update: {
           business_id?: string
@@ -65,6 +67,7 @@ export type Database = {
           status?: string | null
           title?: string
           updated_at?: string | null
+          widget_source?: string | null
         }
         Relationships: [
           {
@@ -86,6 +89,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_widget_source_fkey"
+            columns: ["widget_source"]
+            isOneToOne: false
+            referencedRelation: "widget_configurations"
             referencedColumns: ["id"]
           },
         ]
@@ -1026,6 +1036,129 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      widget_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          session_id: string | null
+          source_domain: string | null
+          source_page_url: string | null
+          user_agent: string | null
+          widget_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          session_id?: string | null
+          source_domain?: string | null
+          source_page_url?: string | null
+          user_agent?: string | null
+          widget_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          session_id?: string | null
+          source_domain?: string | null
+          source_page_url?: string | null
+          user_agent?: string | null
+          widget_id?: string
+        }
+        Relationships: []
+      }
+      widget_bookings: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          id: string
+          source_domain: string | null
+          source_page_url: string | null
+          user_agent: string | null
+          widget_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          id?: string
+          source_domain?: string | null
+          source_page_url?: string | null
+          user_agent?: string | null
+          widget_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          id?: string
+          source_domain?: string | null
+          source_page_url?: string | null
+          user_agent?: string | null
+          widget_id?: string
+        }
+        Relationships: []
+      }
+      widget_configurations: {
+        Row: {
+          allow_notes: boolean | null
+          allowed_domains: string[] | null
+          business_id: string
+          button_style: string | null
+          created_at: string
+          font_family: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          primary_color: string | null
+          require_email: boolean | null
+          require_phone: boolean | null
+          secondary_color: string | null
+          show_duration: boolean | null
+          show_prices: boolean | null
+          updated_at: string
+          widget_key: string
+        }
+        Insert: {
+          allow_notes?: boolean | null
+          allowed_domains?: string[] | null
+          business_id: string
+          button_style?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          primary_color?: string | null
+          require_email?: boolean | null
+          require_phone?: boolean | null
+          secondary_color?: string | null
+          show_duration?: boolean | null
+          show_prices?: boolean | null
+          updated_at?: string
+          widget_key?: string
+        }
+        Update: {
+          allow_notes?: boolean | null
+          allowed_domains?: string[] | null
+          business_id?: string
+          button_style?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          primary_color?: string | null
+          require_email?: boolean | null
+          require_phone?: boolean | null
+          secondary_color?: string | null
+          show_duration?: boolean | null
+          show_prices?: boolean | null
+          updated_at?: string
+          widget_key?: string
         }
         Relationships: []
       }

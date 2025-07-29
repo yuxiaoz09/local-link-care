@@ -20,6 +20,7 @@ import Analytics from "./pages/Analytics";
 import Locations from "./pages/Locations";
 import Employees from "./pages/Employees";
 import Products from "./pages/Products";
+import Widgets from "./pages/Widgets";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -115,6 +116,11 @@ const App = () => (
             <Route path="/products" element={
               <ProtectedRoute>
                 <Products />
+              </ProtectedRoute>
+            } />
+            <Route path="/widgets" element={
+              <ProtectedRoute>
+                <Widgets />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
