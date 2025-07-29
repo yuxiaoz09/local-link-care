@@ -96,12 +96,9 @@ const Customers = () => {
 
       setBusinessId(business.id);
 
-      // Fetch customers with analytics data
+      // Fetch customers with analytics data using secure function
       const { data: customersData, error } = await supabase
-        .from('customer_analytics')
-        .select('*')
-        .eq('business_id', business.id)
-        .order('created_at', { ascending: false });
+        .rpc('get_customer_analytics', { business_uuid: business.id });
 
       if (error) throw error;
 

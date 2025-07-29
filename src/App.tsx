@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useBusinessSetup } from "./hooks/useBusinessSetup";
+import { CSRFProvider } from "./components/security/CSRFProtection";
 import Auth from "./pages/Auth";
+import SecurityDashboard from "./pages/SecurityDashboard";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
@@ -46,10 +48,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <CSRFProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -108,10 +111,16 @@ const App = () => (
                 <Settings />
               </ProtectedRoute>
             } />
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <SecurityDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </CSRFProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

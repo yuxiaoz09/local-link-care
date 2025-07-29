@@ -52,13 +52,13 @@ export const RevenueAnalytics = () => {
 
       if (!business) return;
 
-      // Fetch revenue analytics data
+      // Fetch revenue analytics using secure function
       const { data: revenueAnalyticsData, error: revenueError } = await supabase
-        .from('revenue_analytics')
-        .select('*')
-        .eq('business_id', business.id)
-        .order('month', { ascending: true })
-        .limit(12);
+        .rpc('get_revenue_period', { 
+          business_uuid: business.id,
+          start_date: new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0],
+          end_date: new Date().toISOString().split('T')[0]
+        });
 
       if (revenueError) {
         logSecurityEvent('Failed to load revenue analytics', { 
@@ -74,40 +74,29 @@ export const RevenueAnalytics = () => {
         recordCount: revenueAnalyticsData?.length || 0 
       });
 
-      if (revenueAnalyticsData) {
-        const formattedData = revenueAnalyticsData.map(item => ({
-          month: new Date(item.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-          revenue: Number(item.total_revenue || 0),
-          customers: item.unique_customers || 0,
-          appointments: item.total_appointments || 0,
-          avgTransactionValue: Number(item.avg_transaction_value || 0)
-        }));
+      if (revenueAnalyticsData && Array.isArray(revenueAnalyticsData) && revenueAnalyticsData.length > 0) {
+        const data = revenueAnalyticsData[0]; // Single result from function
+        const formattedData = [{
+          month: new Date().toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          revenue: Number(data.total_revenue || 0),
+          customers: Number(data.unique_customers || 0),
+          appointments: Number(data.appointment_count || 0),
+          avgTransactionValue: Number(data.avg_transaction_value || 0)
+        }];
         setRevenueData(formattedData);
 
-        // Calculate KPIs
-        const currentMonth = formattedData[formattedData.length - 1];
-        const previousMonth = formattedData[formattedData.length - 2];
-        
-        const totalRevenue = formattedData.reduce((sum, month) => sum + month.revenue, 0);
-        const totalCustomers = Math.max(...formattedData.map(m => m.customers));
-        const monthlyGrowth = previousMonth 
-          ? ((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100 
-          : 0;
-
         setKpiData({
-          totalRevenue,
-          monthlyGrowth,
-          avgRevenuePerCustomer: totalCustomers > 0 ? totalRevenue / totalCustomers : 0,
-          monthlyRecurringRevenue: currentMonth?.revenue || 0,
-          customerAcquisitionRate: currentMonth?.customers || 0
+          totalRevenue: Number(data.total_revenue || 0),
+          monthlyGrowth: 0, // Can't calculate without historical data
+          avgRevenuePerCustomer: Number(data.avg_transaction_value || 0),
+          monthlyRecurringRevenue: Number(data.total_revenue || 0),
+          customerAcquisitionRate: Number(data.unique_customers || 0)
         });
       }
 
-      // Fetch customer analytics for segment revenue
+      // Fetch customer analytics for segment revenue using secure function
       const { data: customersData } = await supabase
-        .from('customer_analytics')
-        .select('*')
-        .eq('business_id', business.id);
+        .rpc('get_customer_analytics', { business_uuid: business.id });
 
       if (customersData) {
         const segments = customersData.reduce((acc, customer) => {

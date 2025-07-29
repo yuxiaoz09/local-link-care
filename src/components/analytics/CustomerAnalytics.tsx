@@ -49,10 +49,9 @@ const CustomerAnalytics = () => {
 
       if (!business) return;
 
+      // Use the secure function instead of the view
       const { data, error } = await supabase
-        .from('customer_analytics')
-        .select('*')
-        .eq('business_id', business.id);
+        .rpc('get_customer_analytics', { business_uuid: business.id });
 
       if (error) {
         logSecurityEvent('Failed to load customer analytics', { 

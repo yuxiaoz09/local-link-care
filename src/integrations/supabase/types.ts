@@ -75,13 +75,6 @@ export type Database = {
             foreignKeyName: "appointments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "customer_analytics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -595,6 +588,39 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          action_type: string
+          attempt_count: number | null
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string | null
+          window_start: string | null
+        }
+        Insert: {
+          action_type: string
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          action_type?: string
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -719,13 +745,6 @@ export type Database = {
             foreignKeyName: "tasks_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "customer_analytics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -772,58 +791,18 @@ export type Database = {
       }
     }
     Views: {
-      customer_analytics: {
-        Row: {
-          address: string | null
-          avg_order_value: number | null
-          business_id: string | null
-          created_at: string | null
-          customer_lifetime_value: number | null
-          days_since_last_visit: number | null
-          email: string | null
-          frequency_score: number | null
-          id: string | null
-          monetary_score: number | null
-          name: string | null
-          notes: string | null
-          phone: string | null
-          recency_score: number | null
-          tags: string[] | null
-          total_appointments: number | null
-          total_spent: number | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      revenue_analytics: {
-        Row: {
-          avg_transaction_value: number | null
-          business_id: string | null
-          month: string | null
-          total_appointments: number | null
-          total_revenue: number | null
-          unique_customers: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "appointments_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_user_id: string
+          p_action_type: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       get_appointments_period: {
         Args: { business_uuid: string; start_date: string; end_date: string }
         Returns: {
@@ -868,6 +847,29 @@ export type Database = {
           tag_color: string
           tag_category: string
           usage_count: number
+        }[]
+      }
+      get_customer_analytics: {
+        Args: { business_uuid: string }
+        Returns: {
+          id: string
+          business_id: string
+          name: string
+          email: string
+          phone: string
+          address: string
+          notes: string
+          tags: string[]
+          created_at: string
+          updated_at: string
+          total_spent: number
+          total_appointments: number
+          avg_order_value: number
+          days_since_last_visit: number
+          customer_lifetime_value: number
+          recency_score: number
+          frequency_score: number
+          monetary_score: number
         }[]
       }
       get_customer_segment: {

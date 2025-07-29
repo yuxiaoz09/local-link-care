@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessSetup } from "@/hooks/useBusinessSetup";
-import { sanitizeText, isValidEmail, isValidPhone, logSecurityEvent } from "@/lib/security";
+import { validateBusinessInput, sanitizeErrorMessage, logSecurityEvent, rateLimiter } from "@/lib/security";
+import { validateBusinessName, validateEmail, validatePhone, validateAddress } from "@/lib/formValidation";
 
 interface Business {
   id: string;
@@ -91,47 +92,58 @@ export default function Settings() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Security: Validate and sanitize inputs
-    const sanitizedName = sanitizeText(name);
-    const sanitizedEmail = sanitizeText(ownerEmail);
-    
-    if (!sanitizedName.trim() || !sanitizedEmail.trim()) {
+    // Security: Check rate limiting
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       toast({
         title: "Error",
-        description: "Name and email are required",
+        description: "Authentication required",
         variant: "destructive",
       });
       return;
     }
 
-    // Security: Validate email format
-    if (!isValidEmail(sanitizedEmail)) {
+    if (!rateLimiter.checkLimit('CUSTOMER_CREATION', user.id)) {
       toast({
         title: "Error",
-        description: "Please enter a valid email address",
+        description: "Too many attempts. Please wait before trying again.",
         variant: "destructive",
       });
+      logSecurityEvent('Rate limit exceeded', { action: 'settings_save', userId: user.id });
       return;
     }
 
-    // Security: Validate phone if provided
-    if (phone && !isValidPhone(phone)) {
+    // Enhanced validation using new validation functions
+    const nameValidation = validateBusinessName(name);
+    const emailValidation = validateEmail(ownerEmail);
+    const phoneValidation = validatePhone(phone, false);
+    const addressValidation = validateAddress(address);
+
+    const allErrors = [
+      ...nameValidation.errors,
+      ...emailValidation.errors,
+      ...phoneValidation.errors,
+      ...addressValidation.errors
+    ];
+
+    if (allErrors.length > 0) {
       toast({
-        title: "Error",
-        description: "Please enter a valid phone number",
+        title: "Validation Error",
+        description: allErrors[0],
         variant: "destructive",
       });
+      logSecurityEvent('Form validation failed', { errors: allErrors });
       return;
     }
 
     setSaving(true);
     try {
-      // Security: Sanitize all inputs
+      // Use validated and sanitized data
       const businessData = {
-        name: sanitizedName,
-        owner_email: sanitizedEmail,
-        phone: phone ? sanitizeText(phone) : null,
-        address: address ? sanitizeText(address) : null,
+        name,
+        owner_email: ownerEmail,
+        phone: phone || null,
+        address: address || null,
       };
 
       console.log("Saving business data:", businessData);
@@ -183,19 +195,16 @@ export default function Settings() {
     } catch (error) {
       console.error("Error saving business:", error);
       
-      // Provide more specific error messages
-      let errorMessage = "Failed to save business information";
-      if (error.code === '23505') {
-        errorMessage = "A business profile already exists for this account";
-      } else if (error.message?.includes('user_id')) {
-        errorMessage = "Authentication error. Please sign out and sign back in.";
-      } else if (error.message?.includes('network')) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      }
+      // Use secure error sanitization
+      const sanitizedError = sanitizeErrorMessage(error);
+      logSecurityEvent('Business save failed', { 
+        error: error.message,
+        businessId: business?.id 
+      });
       
       toast({
         title: "Save Error",
-        description: errorMessage,
+        description: sanitizedError,
         variant: "destructive",
       });
     } finally {

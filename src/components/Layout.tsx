@@ -1,7 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole, UserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   LayoutDashboard, 
   Users, 
@@ -13,6 +15,7 @@ import {
   UserCheck,
   Package,
   Settings,
+  Shield,
   LogOut,
   Menu
 } from 'lucide-react';
@@ -24,9 +27,29 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [businessId, setBusinessId] = useState<string>('');
+  const { role, hasPermission } = useUserRole(businessId);
+
+  useEffect(() => {
+    const fetchBusinessId = async () => {
+      if (user) {
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (business) {
+          setBusinessId(business.id);
+        }
+      }
+    };
+
+    fetchBusinessId();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,16 +57,17 @@ const Layout = ({ children }: LayoutProps) => {
   };
 
   const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/customers', icon: Users, label: 'Customers' },
-    { path: '/appointments', icon: Calendar, label: 'Appointments' },
-    { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-    { path: '/locations', icon: MapPin, label: 'Locations' },
-    { path: '/employees', icon: UserCheck, label: 'Employees' },
-    { path: '/products', icon: Package, label: 'Products' },
-    { path: '/reports', icon: BarChart3, label: 'Reports' },
-    { path: '/analytics', icon: TrendingUp, label: 'Analytics' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/customers', icon: Users, label: 'Customers', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/appointments', icon: Calendar, label: 'Appointments', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/tasks', icon: CheckSquare, label: 'Tasks', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/locations', icon: MapPin, label: 'Locations', roles: ['manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/employees', icon: UserCheck, label: 'Employees', roles: ['admin', 'owner'] as UserRole[] },
+    { path: '/products', icon: Package, label: 'Products', roles: ['manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/analytics', icon: TrendingUp, label: 'Analytics', roles: ['admin', 'owner'] as UserRole[] },
+    { path: '/security', icon: Shield, label: 'Security', roles: ['admin', 'owner'] as UserRole[] },
+    { path: '/settings', icon: Settings, label: 'Settings', roles: ['owner'] as UserRole[] },
   ];
 
   const NavContent = () => (
@@ -57,6 +81,10 @@ const Layout = ({ children }: LayoutProps) => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+            const hasAccess = hasPermission(item.roles);
+            
+            // Hide navigation items user doesn't have access to
+            if (!hasAccess) return null;
             
             return (
               <li key={item.path}>
@@ -78,6 +106,11 @@ const Layout = ({ children }: LayoutProps) => {
       </nav>
       
       <div className="p-4 border-t">
+        {role && (
+          <div className="mb-2 text-xs text-muted-foreground">
+            Role: <span className="capitalize font-medium">{role}</span>
+          </div>
+        )}
         <Button
           onClick={handleSignOut}
           variant="ghost"
