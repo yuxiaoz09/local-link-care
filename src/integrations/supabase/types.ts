@@ -803,6 +803,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      debug_auth_uid: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          auth_user_id: string
+          auth_role: string
+          session_info: Json
+        }[]
+      }
       get_appointments_period: {
         Args: { business_uuid: string; start_date: string; end_date: string }
         Returns: {

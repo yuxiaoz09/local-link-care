@@ -76,6 +76,16 @@ const CustomerAnalytics = () => {
         directError: directError?.message 
       });
 
+      // Test auth debugging function
+      console.log('🔐 CustomerAnalytics: Testing auth debugging function...');
+      const { data: authDebug, error: authError } = await supabase
+        .rpc('debug_auth_uid');
+      
+      console.log('🔐 CustomerAnalytics: Auth debug result:', { 
+        authDebug: authDebug?.[0], 
+        authError: authError?.message 
+      });
+
       // Now try the RPC function
       console.log('🔐 CustomerAnalytics: Calling get_customer_analytics RPC...');
       const { data, error } = await supabase

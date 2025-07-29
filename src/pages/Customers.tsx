@@ -130,6 +130,16 @@ const Customers = () => {
         sampleCustomer: directCustomers?.[0]
       });
 
+      // Test auth debugging function  
+      console.log('🔐 Customers: Testing auth debugging function...');
+      const { data: authDebug, error: authError } = await supabase
+        .rpc('debug_auth_uid');
+      
+      console.log('🔐 Customers: Auth debug result:', { 
+        authDebug: authDebug?.[0], 
+        authError: authError?.message 
+      });
+
       // Fetch customers with analytics data using secure function
       console.log('🔐 Customers: Calling get_customer_analytics RPC...');
       const { data: customersData, error } = await supabase
