@@ -63,7 +63,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/tasks', icon: CheckSquare, label: 'Tasks', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
     { path: '/locations', icon: MapPin, label: 'Locations', roles: ['manager', 'admin', 'owner'] as UserRole[] },
     { path: '/employees', icon: UserCheck, label: 'Employees', roles: ['admin', 'owner'] as UserRole[] },
-    { path: '/products', icon: Package, label: 'Products', roles: ['manager', 'admin', 'owner'] as UserRole[] },
+    { path: '/products', icon: Package, label: 'Services & Products', roles: ['manager', 'admin', 'owner'] as UserRole[] },
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['manager', 'admin', 'owner'] as UserRole[] },
     { path: '/analytics', icon: TrendingUp, label: 'Analytics', roles: ['admin', 'owner'] as UserRole[] },
     { path: '/security', icon: Shield, label: 'Security', roles: ['admin', 'owner'] as UserRole[] },
