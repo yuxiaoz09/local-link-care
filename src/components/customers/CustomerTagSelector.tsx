@@ -44,11 +44,18 @@ export const CustomerTagSelector: React.FC<CustomerTagSelectorProps> = ({
 
   const fetchAvailableTags = async () => {
     try {
+      console.log('Fetching tags for business:', businessId);
+      
       const { data, error } = await supabase.rpc('get_business_tags_with_usage', {
         p_business_id: businessId,
       });
 
-      if (error) throw error;
+      console.log('RPC response:', { data, error });
+
+      if (error) {
+        console.error('Database RPC error:', error);
+        throw error;
+      }
 
       const tags = data?.map((tag: any) => ({
         tag_id: tag.tag_id,
@@ -58,14 +65,30 @@ export const CustomerTagSelector: React.FC<CustomerTagSelectorProps> = ({
         usage_count: tag.usage_count,
       })) || [];
 
+      console.log('Processed tags:', tags);
       setAvailableTags(tags);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching tags:', error);
+      
+      // Provide more detailed error information
+      const errorMessage = error?.message || 'Unknown error occurred';
+      const errorCode = error?.code || 'NO_CODE';
+      
+      console.error('Detailed error info:', { 
+        message: errorMessage, 
+        code: errorCode, 
+        businessId,
+        error 
+      });
+      
       toast({
         title: 'Error',
-        description: 'Failed to fetch available tags',
+        description: `Failed to fetch available tags: ${errorMessage}`,
         variant: 'destructive',
       });
+      
+      // Set empty array so the component doesn't break
+      setAvailableTags([]);
     }
   };
 
