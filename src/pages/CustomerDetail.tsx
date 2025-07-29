@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, CheckSquare } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, CheckSquare, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import CustomerDialog from '@/components/customers/CustomerDialog';
+import AppointmentDialog from '@/components/appointments/AppointmentDialog';
 
 interface Customer {
   id: string;
@@ -23,10 +24,12 @@ interface Customer {
 interface Appointment {
   id: string;
   title: string;
+  description: string | null;
   start_time: string;
   end_time: string;
   status: string;
   price: number | null;
+  customer_id: string;
 }
 
 interface Task {
@@ -47,6 +50,8 @@ const CustomerDetail = () => {
   const [loading, setLoading] = useState(true);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     if (user && id) {
@@ -116,6 +121,47 @@ const CustomerDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsAppointmentDialogOpen(true);
+  };
+
+  const handleAddAppointment = () => {
+    setSelectedAppointment(null);
+    setIsAppointmentDialogOpen(true);
+  };
+
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Appointment deleted successfully.",
+      });
+
+      fetchCustomerData(); // Refresh the data
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete appointment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAppointmentSuccess = () => {
+    fetchCustomerData();
+    setIsAppointmentDialogOpen(false);
+    setSelectedAppointment(null);
   };
 
   if (loading) {
@@ -215,11 +261,17 @@ const CustomerDetail = () => {
                 <Calendar className="h-5 w-5" />
                 Recent Appointments
               </CardTitle>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/appointments?customer=${customer.id}`}>
-                  View All
-                </Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleAddAppointment}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/appointments?customer=${customer.id}`}>
+                    View All
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {appointments.length === 0 ? (
@@ -227,25 +279,45 @@ const CustomerDetail = () => {
               ) : (
                 <div className="space-y-3">
                   {appointments.slice(0, 5).map((appointment) => (
-                    <div key={appointment.id} className="flex justify-between items-center p-3 bg-accent rounded-lg">
-                      <div>
+                    <div key={appointment.id} className="flex justify-between items-center p-3 bg-accent rounded-lg group">
+                      <div className="flex-1">
                         <p className="font-medium">{appointment.title}</p>
                         <p className="text-sm text-muted-foreground">
                           {new Date(appointment.start_time).toLocaleDateString()} at{' '}
                           {new Date(appointment.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {appointment.status}
-                        </span>
-                        {appointment.price && (
-                          <p className="text-sm font-medium mt-1">${appointment.price}</p>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {appointment.status}
+                          </span>
+                          {appointment.price && (
+                            <p className="text-sm font-medium mt-1">${appointment.price}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditAppointment(appointment)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteAppointment(appointment.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -309,6 +381,15 @@ const CustomerDetail = () => {
           fetchCustomerData();
           setIsEditDialogOpen(false);
         }}
+      />
+
+      {/* Appointment Dialog */}
+      <AppointmentDialog
+        open={isAppointmentDialogOpen}
+        onOpenChange={setIsAppointmentDialogOpen}
+        appointment={selectedAppointment}
+        businessId={businessId}
+        onSuccess={handleAppointmentSuccess}
       />
     </div>
   );
