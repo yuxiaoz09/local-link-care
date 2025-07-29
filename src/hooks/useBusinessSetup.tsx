@@ -6,6 +6,7 @@ export function useBusinessSetup() {
   const [hasBusiness, setHasBusiness] = useState<boolean | null>(null);
   const [businessData, setBusinessData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -52,7 +53,11 @@ export function useBusinessSetup() {
       } else {
         setHasBusiness(!!data);
         setBusinessData(data);
-        console.log('🏢 useBusinessSetup: Business setup complete', { hasBusiness: !!data });
+        setNeedsOnboarding(data && !data.onboarding_completed);
+        console.log('🏢 useBusinessSetup: Business setup complete', { 
+          hasBusiness: !!data, 
+          needsOnboarding: data && !data.onboarding_completed 
+        });
       }
     } catch (error) {
       console.error("🏢 useBusinessSetup: Unexpected error:", error);
@@ -107,6 +112,7 @@ export function useBusinessSetup() {
     hasBusiness,
     businessData,
     loading,
+    needsOnboarding,
     createPlaceholderBusiness,
     refetch: checkBusinessSetup,
   };

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useBusinessSetup } from "./hooks/useBusinessSetup";
 import { CSRFProvider } from "./components/security/CSRFProtection";
+import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
 import Auth from "./pages/Auth";
 import SecurityDashboard from "./pages/SecurityDashboard";
 import Dashboard from "./pages/Dashboard";
@@ -26,7 +27,7 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  const { hasBusiness, loading: businessLoading, createPlaceholderBusiness } = useBusinessSetup();
+  const { hasBusiness, businessData, needsOnboarding, loading: businessLoading, createPlaceholderBusiness } = useBusinessSetup();
   
   if (loading || businessLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -40,6 +41,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (hasBusiness === false) {
     createPlaceholderBusiness();
     return <div className="min-h-screen flex items-center justify-center">Setting up your business...</div>;
+  }
+
+  // Show onboarding wizard if business needs onboarding
+  if (needsOnboarding && businessData) {
+    return (
+      <OnboardingWizard 
+        businessId={businessData.id}
+        onComplete={() => window.location.reload()}
+      />
+    );
   }
   
   return <Layout>{children}</Layout>;

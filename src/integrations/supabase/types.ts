@@ -24,6 +24,7 @@ export type Database = {
           end_time: string
           id: string
           location_id: string | null
+          offering_id: string | null
           price: number | null
           service_id: string | null
           start_time: string
@@ -40,6 +41,7 @@ export type Database = {
           end_time: string
           id?: string
           location_id?: string | null
+          offering_id?: string | null
           price?: number | null
           service_id?: string | null
           start_time: string
@@ -56,6 +58,7 @@ export type Database = {
           end_time?: string
           id?: string
           location_id?: string | null
+          offering_id?: string | null
           price?: number | null
           service_id?: string | null
           start_time?: string
@@ -126,9 +129,14 @@ export type Database = {
       businesses: {
         Row: {
           address: string | null
+          business_type: string | null
           created_at: string | null
           id: string
+          industry_category: string | null
           name: string
+          onboarding_completed: boolean | null
+          onboarding_progress: Json | null
+          onboarding_step: number | null
           owner_email: string
           phone: string | null
           updated_at: string | null
@@ -136,9 +144,14 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_type?: string | null
           created_at?: string | null
           id?: string
+          industry_category?: string | null
           name: string
+          onboarding_completed?: boolean | null
+          onboarding_progress?: Json | null
+          onboarding_step?: number | null
           owner_email: string
           phone?: string | null
           updated_at?: string | null
@@ -146,9 +159,14 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_type?: string | null
           created_at?: string | null
           id?: string
+          industry_category?: string | null
           name?: string
+          onboarding_completed?: boolean | null
+          onboarding_progress?: Json | null
+          onboarding_step?: number | null
           owner_email?: string
           phone?: string | null
           updated_at?: string | null
@@ -475,6 +493,114 @@ export type Database = {
         }
         Relationships: []
       }
+      offerings: {
+        Row: {
+          allow_online_booking: boolean | null
+          base_price: number | null
+          business_id: string
+          cancellation_policy: string | null
+          category: string | null
+          cost_price: number | null
+          created_at: string | null
+          deposit_required: number | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          requires_booking: boolean | null
+          retail_price: number | null
+          sku: string | null
+          supplier: string | null
+          track_inventory: boolean | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          allow_online_booking?: boolean | null
+          base_price?: number | null
+          business_id: string
+          cancellation_policy?: string | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          deposit_required?: number | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          requires_booking?: boolean | null
+          retail_price?: number | null
+          sku?: string | null
+          supplier?: string | null
+          track_inventory?: boolean | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          allow_online_booking?: boolean | null
+          base_price?: number | null
+          business_id?: string
+          cancellation_policy?: string | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string | null
+          deposit_required?: number | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          requires_booking?: boolean | null
+          retail_price?: number | null
+          sku?: string | null
+          supplier?: string | null
+          track_inventory?: boolean | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      onboarding_progress: {
+        Row: {
+          business_id: string
+          business_type_selected: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          customers_added_count: number | null
+          first_appointment_created: boolean | null
+          id: string
+          services_added_count: number | null
+          staff_added_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          business_type_selected?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          customers_added_count?: number | null
+          first_appointment_created?: boolean | null
+          id?: string
+          services_added_count?: number | null
+          staff_added_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          business_type_selected?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          customers_added_count?: number | null
+          first_appointment_created?: boolean | null
+          id?: string
+          services_added_count?: number | null
+          staff_added_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       password_policies: {
         Row: {
           business_id: string
@@ -717,6 +843,45 @@ export type Database = {
         }
         Relationships: []
       }
+      service_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          industry_category: string
+          is_active: boolean | null
+          name: string
+          suggested_duration: number | null
+          suggested_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry_category: string
+          is_active?: boolean | null
+          name: string
+          suggested_duration?: number | null
+          suggested_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry_category?: string
+          is_active?: boolean | null
+          name?: string
+          suggested_duration?: number | null
+          suggested_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           base_price: number | null
@@ -747,6 +912,27 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      staff_assignments: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          id: string
+          offering_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          offering_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          offering_id?: string
         }
         Relationships: []
       }
