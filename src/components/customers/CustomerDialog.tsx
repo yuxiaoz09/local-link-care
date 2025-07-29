@@ -11,9 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CustomerTagSelector } from './CustomerTagSelector';
+
+interface CustomerTag {
+  tag_id: string;
+  tag_name: string;
+  tag_color: string;
+  tag_category: string;
+}
 
 interface Customer {
   id: string;
@@ -43,8 +49,7 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
     address: '',
     notes: '',
   });
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
+  const [selectedTags, setSelectedTags] = useState<CustomerTag[]>([]);
 
   useEffect(() => {
     if (customer) {
@@ -55,7 +60,11 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
         address: customer.address || '',
         notes: customer.notes || '',
       });
-      setTags(customer.tags || []);
+      
+      // Load customer's existing tags from the new tag system
+      if (customer.id) {
+        loadCustomerTags(customer.id);
+      }
     } else {
       setFormData({
         name: '',
@@ -64,20 +73,56 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
         address: '',
         notes: '',
       });
-      setTags([]);
+      setSelectedTags([]);
     }
-    setNewTag('');
   }, [customer, open]);
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag('');
+  const loadCustomerTags = async (customerId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_customer_tags_with_assignments', {
+        p_customer_id: customerId,
+      });
+
+      if (error) throw error;
+
+      const tags = data?.map((tag: any) => ({
+        tag_id: tag.tag_id,
+        tag_name: tag.tag_name,
+        tag_color: tag.tag_color,
+        tag_category: tag.tag_category,
+      })) || [];
+
+      setSelectedTags(tags);
+    } catch (error) {
+      console.error('Error loading customer tags:', error);
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  const saveTagAssignments = async (customerId: string, tags: CustomerTag[]) => {
+    try {
+      // Remove existing tag assignments
+      await supabase
+        .from('customer_tag_assignments')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Add new tag assignments
+      if (tags.length > 0) {
+        const assignments = tags.map(tag => ({
+          customer_id: customerId,
+          tag_id: tag.tag_id,
+        }));
+
+        const { error } = await supabase
+          .from('customer_tag_assignments')
+          .insert(assignments);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error saving tag assignments:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,8 +178,11 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
         address: formData.address ? sanitizeText(formData.address) : null,
         notes: formData.notes ? sanitizeText(formData.notes) : null,
         business_id: businessId,
-        tags: tags.length > 0 ? tags.map(tag => sanitizeText(tag)) : null,
+        // Keep legacy tags field as null since we're using the new tag system
+        tags: null,
       };
+
+      let customerId = customer?.id;
 
       if (customer) {
         // Update existing customer
@@ -144,26 +192,31 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
           .eq('id', customer.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Customer updated successfully.",
-        });
+        customerId = customer.id;
       } else {
         // Create new customer
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('customers')
-          .insert([customerData]);
+          .insert([customerData])
+          .select()
+          .single();
 
         if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Customer added successfully.",
-        });
+        customerId = data.id;
       }
 
+      // Save tag assignments using new tag system
+      if (customerId) {
+        await saveTagAssignments(customerId, selectedTags);
+      }
+
+      toast({
+        title: "Success",
+        description: customer ? "Customer updated successfully." : "Customer added successfully.",
+      });
+
       onSuccess();
+      onOpenChange(false);
     } catch (error) {
       const sanitizedError = sanitizeErrorMessage(error);
       logSecurityEvent('Customer save error', { 
@@ -249,34 +302,13 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
 
           <div>
             <Label>Tags</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Add a tag (VIP, Regular, etc.)"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTag();
-                  }
-                }}
+            {businessId && (
+              <CustomerTagSelector
+                businessId={businessId}
+                customerId={customer?.id}
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
               />
-              <Button type="button" onClick={handleAddTag} variant="outline">
-                Add
-              </Button>
-            </div>
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                    {tag}
-                    <X
-                      className="h-3 w-3 cursor-pointer"
-                      onClick={() => handleRemoveTag(tag)}
-                    />
-                  </Badge>
-                ))}
-              </div>
             )}
           </div>
 

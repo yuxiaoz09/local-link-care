@@ -201,6 +201,60 @@ export type Database = {
           },
         ]
       }
+      customer_tag_assignments: {
+        Row: {
+          assigned_at: string
+          customer_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          customer_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          assigned_at?: string
+          customer_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: []
+      }
+      customer_tags: {
+        Row: {
+          business_id: string
+          category: string | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          business_id: string
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          business_id?: string
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -719,9 +773,28 @@ export type Database = {
           last_visit: string
         }[]
       }
+      get_business_tags_with_usage: {
+        Args: { p_business_id: string }
+        Returns: {
+          tag_id: string
+          tag_name: string
+          tag_color: string
+          tag_category: string
+          usage_count: number
+        }[]
+      }
       get_customer_segment: {
         Args: { r_score: number; f_score: number; m_score: number }
         Returns: string
+      }
+      get_customer_tags_with_assignments: {
+        Args: { p_customer_id: string }
+        Returns: {
+          tag_id: string
+          tag_name: string
+          tag_color: string
+          tag_category: string
+        }[]
       }
       get_revenue_period: {
         Args: { business_uuid: string; start_date: string; end_date: string }
