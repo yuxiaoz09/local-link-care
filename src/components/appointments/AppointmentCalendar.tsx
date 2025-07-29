@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Trash2, Check, X } from 'lucide-react';
+import AppointmentDayModal from './AppointmentDayModal';
 
 interface Appointment {
   id: string;
@@ -29,6 +31,7 @@ interface AppointmentCalendarProps {
   onEditAppointment: (appointment: Appointment) => void;
   onUpdateStatus: (appointmentId: string, status: string) => void;
   onDeleteAppointment: (appointmentId: string) => void;
+  onAddAppointment?: () => void;
 }
 
 const AppointmentCalendar = ({
@@ -37,7 +40,10 @@ const AppointmentCalendar = ({
   onEditAppointment,
   onUpdateStatus,
   onDeleteAppointment,
+  onAddAppointment,
 }: AppointmentCalendarProps) => {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isDayModalOpen, setIsDayModalOpen] = useState(false);
   // Get first day of month and number of days
   const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -87,9 +93,22 @@ const AppointmentCalendar = ({
       case 'no-show':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-  };
+    return 'bg-blue-100 text-blue-800 border-blue-200';
+  }
+};
+
+const handleDayClick = (date: Date) => {
+  setSelectedDate(date);
+  setIsDayModalOpen(true);
+};
+
+const getSelectedDayAppointments = () => {
+  if (!selectedDate) return [];
+  const dateStr = selectedDate.toISOString().split('T')[0];
+  return appointments.filter(apt => 
+    apt.start_time.startsWith(dateStr)
+  );
+};
 
   return (
     <div className="space-y-4">
@@ -112,9 +131,13 @@ const AppointmentCalendar = ({
               const isTodayDay = isToday(date);
 
               return (
-                <Card key={dayIndex} className={`min-h-32 ${
-                  !isCurrentMonthDay ? 'opacity-40' : ''
-                } ${isTodayDay ? 'ring-2 ring-primary' : ''}`}>
+                <Card 
+                  key={dayIndex} 
+                  className={`min-h-32 cursor-pointer hover:shadow-md transition-shadow ${
+                    !isCurrentMonthDay ? 'opacity-40' : ''
+                  } ${isTodayDay ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => handleDayClick(date)}
+                >
                   <CardContent className="p-2">
                     <div className={`text-sm font-medium mb-2 ${
                       isTodayDay ? 'text-primary' : 
@@ -189,6 +212,21 @@ const AppointmentCalendar = ({
           </div>
         ))}
       </div>
+
+      {/* Day Modal */}
+      <AppointmentDayModal
+        open={isDayModalOpen}
+        onOpenChange={setIsDayModalOpen}
+        date={selectedDate}
+        appointments={getSelectedDayAppointments()}
+        onEditAppointment={onEditAppointment}
+        onUpdateStatus={onUpdateStatus}
+        onDeleteAppointment={onDeleteAppointment}
+        onAddAppointment={() => {
+          setIsDayModalOpen(false);
+          onAddAppointment?.();
+        }}
+      />
     </div>
   );
 };

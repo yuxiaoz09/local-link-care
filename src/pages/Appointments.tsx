@@ -242,6 +242,7 @@ const Appointments = () => {
           }}
           onUpdateStatus={handleUpdateAppointmentStatus}
           onDeleteAppointment={handleDeleteAppointment}
+          onAddAppointment={() => setIsDialogOpen(true)}
         />
       ) : (
         <div className="space-y-4">
