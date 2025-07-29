@@ -8,11 +8,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Package, DollarSign, TrendingUp, Plus, Edit, Trash2, AlertTriangle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Package, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  BarChart3, 
+  AlertTriangle, 
+  TrendingUp,
+  DollarSign,
+  Award,
+  Package2
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ProductAnalyticsCard } from "@/components/products/ProductAnalyticsCard";
+import { InventoryManagement } from "@/components/products/InventoryManagement";
 
 interface Product {
   id: string;
@@ -20,59 +34,48 @@ interface Product {
   name: string;
   sku: string | null;
   category: string | null;
-  description: string | null;
+  supplier: string | null;
   cost_price: number | null;
   retail_price: number | null;
-  supplier: string | null;
+  description: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-}
-
-interface InventoryLevel {
-  id: string;
-  product_id: string;
-  location_id: string;
-  current_stock: number;
-  minimum_stock: number;
-  maximum_stock: number;
-  last_restocked: string | null;
-}
-
-interface Location {
-  id: string;
-  name: string;
 }
 
 export default function Products() {
   const { user } = useAuth();
   const { businessData } = useBusinessSetup();
   const [products, setProducts] = useState<Product[]>([]);
-  const [inventory, setInventory] = useState<InventoryLevel[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [inventoryAlerts, setInventoryAlerts] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("catalog");
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
     category: "",
-    description: "",
+    supplier: "",
     cost_price: "",
     retail_price: "",
-    supplier: "",
+    description: "",
     is_active: true,
   });
 
-  const categories = ["Hair Care", "Skin Care", "Styling", "Tools", "Equipment", "Supplements", "Other"];
+  const categories = ["Electronics", "Clothing", "Beauty", "Health", "Home", "Sports", "Books", "Food", "Other"];
 
   useEffect(() => {
     if (businessData?.id) {
       fetchProducts();
-      fetchLocations();
-      fetchInventory();
+      if (activeTab === "analytics") {
+        fetchAnalytics();
+      }
     }
-  }, [businessData]);
+  }, [businessData, activeTab]);
 
   const fetchProducts = async () => {
     try {
@@ -96,53 +99,46 @@ export default function Products() {
     }
   };
 
-  const fetchLocations = async () => {
+  const fetchAnalytics = async () => {
+    if (!businessData?.id) return;
+    
+    setAnalyticsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("locations")
-        .select("id, name")
-        .eq("business_id", businessData?.id)
-        .eq("is_active", true)
-        .order("name");
+      // Get product analytics
+      const { data: analyticsData, error: analyticsError } = await supabase.rpc("get_product_analytics", {
+        business_uuid: businessData.id,
+      });
 
-      if (error) throw error;
-      setLocations(data || []);
+      if (analyticsError) throw analyticsError;
+      setAnalyticsData(analyticsData || []);
+
+      // Get top products by revenue
+      const { data: topProductsData, error: topProductsError } = await supabase.rpc("get_top_products", {
+        business_uuid: businessData.id,
+        metric: 'revenue',
+        limit_count: 5,
+      });
+
+      if (topProductsError) throw topProductsError;
+      setTopProducts(topProductsData || []);
+
+      // Get inventory alerts
+      const { data: alertsData, error: alertsError } = await supabase.rpc("get_inventory_alerts", {
+        business_uuid: businessData.id,
+      });
+
+      if (alertsError) throw alertsError;
+      setInventoryAlerts(alertsData || []);
     } catch (error) {
-      console.error("Error fetching locations:", error);
+      console.error("Error fetching analytics:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load product analytics",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyticsLoading(false);
     }
-  };
-
-  const fetchInventory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("inventory")
-        .select("*")
-        .in("location_id", locations.map(l => l.id));
-
-      if (error) throw error;
-      setInventory(data || []);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-    }
-  };
-
-  const getInventoryForProduct = (productId: string) => {
-    return inventory.filter(inv => inv.product_id === productId);
-  };
-
-  const getTotalStock = (productId: string) => {
-    const productInventory = getInventoryForProduct(productId);
-    return productInventory.reduce((total, inv) => total + inv.current_stock, 0);
-  };
-
-  const hasLowStock = (productId: string) => {
-    const productInventory = getInventoryForProduct(productId);
-    return productInventory.some(inv => inv.current_stock <= inv.minimum_stock);
-  };
-
-  const calculateProfitMargin = (product: Product) => {
-    if (!product.cost_price || !product.retail_price) return null;
-    return ((product.retail_price - product.cost_price) / product.retail_price * 100).toFixed(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,15 +150,14 @@ export default function Products() {
         name: formData.name,
         sku: formData.sku || null,
         category: formData.category || null,
-        description: formData.description || null,
+        supplier: formData.supplier || null,
         cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         retail_price: formData.retail_price ? parseFloat(formData.retail_price) : null,
-        supplier: formData.supplier || null,
+        description: formData.description || null,
         is_active: formData.is_active,
       };
 
       if (selectedProduct) {
-        // Update existing product
         const { error } = await supabase
           .from("products")
           .update(productData)
@@ -174,39 +169,16 @@ export default function Products() {
           description: "Product updated successfully",
         });
       } else {
-        // Create new product
-        const { data: newProduct, error } = await supabase
+        const { error } = await supabase
           .from("products")
           .insert([
             {
               ...productData,
               business_id: businessData.id,
             },
-          ])
-          .select()
-          .single();
+          ]);
 
         if (error) throw error;
-
-        // Create inventory records for all locations
-        if (newProduct && locations.length > 0) {
-          const inventoryRecords = locations.map(location => ({
-            product_id: newProduct.id,
-            location_id: location.id,
-            current_stock: 0,
-            minimum_stock: 5,
-            maximum_stock: 100,
-          }));
-
-          const { error: inventoryError } = await supabase
-            .from("inventory")
-            .insert(inventoryRecords);
-
-          if (inventoryError) {
-            console.error("Error creating inventory records:", inventoryError);
-          }
-        }
-
         toast({
           title: "Success",
           description: "Product created successfully",
@@ -215,18 +187,8 @@ export default function Products() {
 
       setIsDialogOpen(false);
       setSelectedProduct(null);
-      setFormData({
-        name: "",
-        sku: "",
-        category: "",
-        description: "",
-        cost_price: "",
-        retail_price: "",
-        supplier: "",
-        is_active: true,
-      });
+      resetForm();
       fetchProducts();
-      fetchInventory();
     } catch (error) {
       console.error("Error saving product:", error);
       toast({
@@ -243,17 +205,17 @@ export default function Products() {
       name: product.name,
       sku: product.sku || "",
       category: product.category || "",
-      description: product.description || "",
+      supplier: product.supplier || "",
       cost_price: product.cost_price?.toString() || "",
       retail_price: product.retail_price?.toString() || "",
-      supplier: product.supplier || "",
+      description: product.description || "",
       is_active: product.is_active,
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product? This will also delete all inventory records.")) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
 
     try {
       const { error } = await supabase
@@ -267,7 +229,6 @@ export default function Products() {
         description: "Product deleted successfully",
       });
       fetchProducts();
-      fetchInventory();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast({
@@ -278,6 +239,21 @@ export default function Products() {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      sku: "",
+      category: "",
+      supplier: "",
+      cost_price: "",
+      retail_price: "",
+      description: "",
+      is_active: true,
+    });
+  };
+
+  const maxRevenue = Math.max(...analyticsData.map(product => product.total_sales_revenue), 0);
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
@@ -286,29 +262,20 @@ export default function Products() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog and inventory</p>
+          <h1 className="text-3xl font-bold">Product Inventory & Management</h1>
+          <p className="text-muted-foreground">Manage your product catalog, inventory, and analytics</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => {
               setSelectedProduct(null);
-              setFormData({
-                name: "",
-                sku: "",
-                category: "",
-                description: "",
-                cost_price: "",
-                retail_price: "",
-                supplier: "",
-                is_active: true,
-              });
+              resetForm();
             }}>
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {selectedProduct ? "Edit Product" : "Add New Product"}
@@ -318,24 +285,27 @@ export default function Products() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Product Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Product Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
                 <div>
                   <Label htmlFor="sku">SKU</Label>
                   <Input
                     id="sku"
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    placeholder="Optional"
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="category">Category</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -351,14 +321,15 @@ export default function Products() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
+                <div>
+                  <Label htmlFor="supplier">Supplier</Label>
+                  <Input
+                    id="supplier"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -383,11 +354,12 @@ export default function Products() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input
-                  id="supplier"
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Optional product description"
                 />
               </div>
               <div className="flex items-center space-x-2">
@@ -406,87 +378,221 @@ export default function Products() {
         </Dialog>
       </div>
 
-      {products.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No products yet</h3>
-            <p className="text-muted-foreground">Add your first product to get started</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => {
-            const totalStock = getTotalStock(product.id);
-            const lowStock = hasLowStock(product.id);
-            const profitMargin = calculateProfitMargin(product);
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="catalog" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Product Catalog
+          </TabsTrigger>
+          <TabsTrigger value="inventory" className="flex items-center gap-2">
+            <Package2 className="h-4 w-4" />
+            Inventory Management
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
 
-            return (
-              <Card key={product.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {product.name}
-                        {!product.is_active && (
-                          <Badge variant="secondary">Inactive</Badge>
+        <TabsContent value="catalog" className="mt-6">
+          {products.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No products yet</h3>
+                <p className="text-muted-foreground">Add your first product to get started</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {products.map((product) => (
+                <Card key={product.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {product.name}
+                          {!product.is_active && (
+                            <Badge variant="secondary">Inactive</Badge>
+                          )}
+                        </CardTitle>
+                        {product.category && (
+                          <CardDescription>{product.category}</CardDescription>
                         )}
-                        {lowStock && (
-                          <AlertTriangle className="h-4 w-4 text-orange-500" />
+                        {product.sku && (
+                          <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
                         )}
-                      </CardTitle>
-                      <CardDescription>
-                        {product.category} {product.sku && `• ${product.sku}`}
-                      </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(product.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Stock:</span>
-                    <span className={lowStock ? "text-orange-500 font-medium" : ""}>{totalStock}</span>
-                  </div>
-                  {product.retail_price && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4" />
-                      ${product.retail_price}
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {product.supplier && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Supplier: </span>
+                        <span>{product.supplier}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       {product.cost_price && (
-                        <span className="text-muted-foreground">
-                          (cost: ${product.cost_price})
-                        </span>
+                        <div>
+                          <span className="text-muted-foreground">Cost: </span>
+                          <span className="font-medium">${product.cost_price}</span>
+                        </div>
+                      )}
+                      {product.retail_price && (
+                        <div>
+                          <span className="text-muted-foreground">Price: </span>
+                          <span className="font-medium">${product.retail_price}</span>
+                        </div>
                       )}
                     </div>
-                  )}
-                  {profitMargin && (
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <TrendingUp className="h-4 w-4" />
-                      {profitMargin}% margin
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground">{product.description}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="inventory" className="mt-6">
+          {businessData?.id ? (
+            <InventoryManagement businessId={businessData.id} />
+          ) : (
+            <div>Loading business data...</div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-6">
+          {analyticsLoading ? (
+            <div className="flex items-center justify-center h-64">Loading analytics...</div>
+          ) : analyticsData.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No analytics data yet</h3>
+                <p className="text-muted-foreground">Make some sales to see product performance metrics</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                        <p className="text-2xl font-bold">
+                          ${analyticsData.reduce((sum, product) => sum + product.total_sales_revenue, 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-green-600" />
                     </div>
-                  )}
-                  {product.supplier && (
-                    <div className="text-sm text-muted-foreground">
-                      Supplier: {product.supplier}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Active Products</p>
+                        <p className="text-2xl font-bold">{products.filter(p => p.is_active).length}</p>
+                      </div>
+                      <Package className="h-8 w-8 text-blue-600" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Low Stock Alerts</p>
+                        <p className="text-2xl font-bold">{inventoryAlerts.length}</p>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-red-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Avg Profit Margin</p>
+                        <p className="text-2xl font-bold">
+                          {(analyticsData.reduce((sum, p) => sum + p.profit_margin, 0) / 
+                            Math.max(analyticsData.length, 1)).toFixed(1)}%
+                        </p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-purple-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Product Performance Cards */}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {analyticsData.map((product) => (
+                  <ProductAnalyticsCard
+                    key={product.product_id}
+                    product={product}
+                    maxRevenue={maxRevenue}
+                  />
+                ))}
+              </div>
+
+              {/* Top Products */}
+              {topProducts.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      Top Performing Products
+                    </CardTitle>
+                    <CardDescription>Ranked by total revenue</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {topProducts.map((product, index) => (
+                        <div key={product.product_id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={index === 0 ? "default" : "secondary"}>
+                              #{product.rank_position}
+                            </Badge>
+                            <div>
+                              <div className="font-medium">{product.product_name}</div>
+                              {product.product_category && (
+                                <div className="text-sm text-muted-foreground">{product.product_category}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">${product.metric_value.toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground">Revenue</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

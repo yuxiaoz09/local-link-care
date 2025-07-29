@@ -967,6 +967,40 @@ export type Database = {
           revenue_this_month: number
         }[]
       }
+      get_inventory_alerts: {
+        Args: { business_uuid: string }
+        Returns: {
+          product_id: string
+          product_name: string
+          location_id: string
+          location_name: string
+          current_stock: number
+          minimum_stock: number
+          stock_shortage: number
+          alert_level: string
+        }[]
+      }
+      get_product_analytics: {
+        Args: { business_uuid: string }
+        Returns: {
+          product_id: string
+          product_name: string
+          product_sku: string
+          product_category: string
+          supplier: string
+          cost_price: number
+          retail_price: number
+          total_stock: number
+          total_sales_quantity: number
+          total_sales_revenue: number
+          profit_margin: number
+          inventory_turnover: number
+          days_since_last_sale: number
+          locations_in_stock: number
+          average_sale_price: number
+          total_profit: number
+        }[]
+      }
       get_revenue_period: {
         Args: { business_uuid: string; start_date: string; end_date: string }
         Returns: {
@@ -974,6 +1008,16 @@ export type Database = {
           appointment_count: number
           avg_transaction_value: number
           unique_customers: number
+        }[]
+      }
+      get_top_products: {
+        Args: { business_uuid: string; metric?: string; limit_count?: number }
+        Returns: {
+          product_id: string
+          product_name: string
+          product_category: string
+          metric_value: number
+          rank_position: number
         }[]
       }
       get_user_role: {
