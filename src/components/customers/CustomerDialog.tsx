@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeText, validateCustomerInput, logSecurityEvent, rateLimiter, RATE_LIMITS, sanitizeErrorMessage } from '@/lib/security';
+import { validateCustomerName, validateEmail, validatePhone, validateNotes, validateAddress } from '@/lib/formValidation';
 import {
   Dialog,
   DialogContent,
@@ -148,18 +149,20 @@ const CustomerDialog = ({ open, onOpenChange, customer, businessId, onSuccess }:
       return;
     }
 
-    // Security: Enhanced validation using security utilities
-    const validation = validateCustomerInput({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      notes: formData.notes
-    });
+    // Enhanced security: Multi-layer validation with improved validation functions
+    const validations = [
+      validateCustomerName(formData.name),
+      ...(formData.email ? [validateEmail(formData.email)] : []),
+      ...(formData.phone ? [validatePhone(formData.phone)] : []),
+      validateNotes(formData.notes || ''),
+      validateAddress(formData.address || '')
+    ];
 
-    if (!validation.isValid) {
+    const errors = validations.flatMap(v => v.errors);
+    if (errors.length > 0) {
       toast({
         title: "Validation Error",
-        description: validation.errors.join('. '),
+        description: errors.join('. '),
         variant: "destructive",
       });
       return;

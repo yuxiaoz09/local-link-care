@@ -91,6 +91,12 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Password strength indicator colors */
+    --password-very-weak: 0 84% 60%;
+    --password-weak: 25 95% 53%;
+    --password-good: 45 93% 47%;
+    --password-strong: 120 60% 50%;
   }
 }
 

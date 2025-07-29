@@ -22,9 +22,13 @@ export function PasswordStrengthIndicator({ score, feedback, className }: Passwo
       
       <Progress 
         value={progressValue} 
-        className="h-2"
-        // Custom color based on strength
-        data-strength={score}
+        className={cn(
+          "h-2",
+          score <= 1 && "[&>div]:bg-red-500",
+          score === 2 && "[&>div]:bg-orange-500", 
+          score === 3 && "[&>div]:bg-yellow-500",
+          score >= 4 && "[&>div]:bg-green-500"
+        )}
       />
       
       {feedback.length > 0 && (

@@ -428,6 +428,45 @@ export type Database = {
         }
         Relationships: []
       }
+      password_policies: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          min_length: number
+          password_expiry_days: number | null
+          require_lowercase: boolean
+          require_numbers: boolean
+          require_special_chars: boolean
+          require_uppercase: boolean
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          min_length?: number
+          password_expiry_days?: number | null
+          require_lowercase?: boolean
+          require_numbers?: boolean
+          require_special_chars?: boolean
+          require_uppercase?: boolean
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          min_length?: number
+          password_expiry_days?: number | null
+          require_lowercase?: boolean
+          require_numbers?: boolean
+          require_special_chars?: boolean
+          require_uppercase?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_sales: {
         Row: {
           created_at: string | null
@@ -563,7 +602,10 @@ export type Database = {
           details: Json | null
           id: string
           ip_address: unknown | null
+          location_data: Json | null
           resource: string
+          risk_score: number | null
+          session_id: string | null
           user_agent: string | null
           user_id: string | null
         }
@@ -573,7 +615,10 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: unknown | null
+          location_data?: Json | null
           resource: string
+          risk_score?: number | null
+          session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -583,7 +628,10 @@ export type Database = {
           details?: Json | null
           id?: string
           ip_address?: unknown | null
+          location_data?: Json | null
           resource?: string
+          risk_score?: number | null
+          session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -682,6 +730,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          business_id: string
+          created_at: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -805,13 +892,34 @@ export type Database = {
           unique_customers: number
         }[]
       }
+      get_user_role: {
+        Args: { _user_id: string; _business_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _business_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       log_analytics_access: {
         Args: { p_action: string; p_resource: string; p_details?: Json }
         Returns: undefined
       }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_resource: string
+          p_details?: Json
+          p_risk_score?: number
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "employee" | "owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -938,6 +1046,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "employee", "owner"],
+    },
   },
 } as const
