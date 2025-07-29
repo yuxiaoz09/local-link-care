@@ -35,13 +35,14 @@ const Appointments = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     if (user) {
       fetchBusinessAndAppointments();
     }
-  }, [user, currentDate]);
+  }, [user, currentDate, calendarView]);
 
   useEffect(() => {
     const action = searchParams.get('action');
@@ -82,9 +83,33 @@ const Appointments = () => {
 
       setBusinessId(business.id);
 
-      // Fetch appointments for current month
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      // Fetch appointments based on current view and date
+      let startDate, endDate;
+      
+      switch (calendarView) {
+        case 'day':
+          startDate = new Date(currentDate);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(currentDate);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        
+        case 'week':
+          startDate = new Date(currentDate);
+          startDate.setDate(currentDate.getDate() - currentDate.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        
+        case 'month':
+        default:
+          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+          endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+      }
 
       const { data: appointmentsData, error } = await supabase
         .from('appointments')
@@ -95,8 +120,8 @@ const Appointments = () => {
           )
         `)
         .eq('business_id', business.id)
-        .gte('start_time', startOfMonth.toISOString())
-        .lte('start_time', endOfMonth.toISOString())
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
         .order('start_time');
 
       if (error) throw error;
@@ -169,12 +194,53 @@ const Appointments = () => {
     }
   };
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
+  const navigateDate = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+      
+      switch (calendarView) {
+        case 'day':
+          newDate.setDate(prev.getDate() + (direction === 'next' ? 1 : -1));
+          break;
+        case 'week':
+          newDate.setDate(prev.getDate() + (direction === 'next' ? 7 : -7));
+          break;
+        case 'month':
+        default:
+          newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
+          break;
+      }
+      
       return newDate;
     });
+  };
+
+  const getDateRangeTitle = () => {
+    switch (calendarView) {
+      case 'day':
+        return currentDate.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      
+      case 'week':
+        const weekStart = new Date(currentDate);
+        weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        if (weekStart.getMonth() === weekEnd.getMonth()) {
+          return `${weekStart.toLocaleDateString('en-US', { month: 'long' })} ${weekStart.getDate()}-${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+        } else {
+          return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${weekStart.getFullYear()}`;
+        }
+      
+      case 'month':
+      default:
+        return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
   };
 
   if (loading) {
@@ -220,13 +286,13 @@ const Appointments = () => {
 
       {/* Date Navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={() => navigateMonth('prev')}>
+        <Button variant="outline" onClick={() => navigateDate('prev')}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-xl font-semibold">
-          {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          {getDateRangeTitle()}
         </h2>
-        <Button variant="outline" onClick={() => navigateMonth('next')}>
+        <Button variant="outline" onClick={() => navigateDate('next')}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -236,6 +302,8 @@ const Appointments = () => {
         <AppointmentCalendar
           appointments={appointments}
           currentDate={currentDate}
+          view={calendarView}
+          onViewChange={setCalendarView}
           onEditAppointment={(appointment) => {
             setEditingAppointment(appointment);
             setIsDialogOpen(true);
