@@ -10,8 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, DollarSign, Plus, Edit, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Mail, Phone, DollarSign, Plus, Edit, Trash2, BarChart3, Users, Settings } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { EmployeeAnalyticsCard } from "@/components/employees/EmployeeAnalyticsCard";
+import { EmployeeServiceSpecializations } from "@/components/employees/EmployeeServiceSpecializations";
 
 interface Employee {
   id: string;
@@ -42,6 +45,9 @@ export default function Employees() {
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("profiles");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -60,8 +66,11 @@ export default function Employees() {
     if (businessData?.id) {
       fetchEmployees();
       fetchLocations();
+      if (activeTab === "analytics") {
+        fetchAnalytics();
+      }
     }
-  }, [businessData]);
+  }, [businessData, activeTab]);
 
   const fetchEmployees = async () => {
     try {
@@ -98,6 +107,29 @@ export default function Employees() {
       setLocations(data || []);
     } catch (error) {
       console.error("Error fetching locations:", error);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    if (!businessData?.id) return;
+    
+    setAnalyticsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("get_employee_analytics", {
+        business_uuid: businessData.id,
+      });
+
+      if (error) throw error;
+      setAnalyticsData(data || []);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load employee analytics",
+        variant: "destructive",
+      });
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -223,12 +255,14 @@ export default function Employees() {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
 
+  const maxRevenue = Math.max(...analyticsData.map(emp => emp.total_revenue), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Employees</h1>
-          <p className="text-muted-foreground">Manage your team members</p>
+          <h1 className="text-3xl font-bold">Employee Management</h1>
+          <p className="text-muted-foreground">Manage your team members and track performance</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -364,74 +398,288 @@ export default function Employees() {
         </Dialog>
       </div>
 
-      {employees.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No employees yet</h3>
-            <p className="text-muted-foreground">Add your first team member to get started</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {employees.map((employee) => (
-            <Card key={employee.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {employee.name}
-                      {!employee.is_active && (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
-                    </CardTitle>
-                    {employee.role && (
-                      <CardDescription>{employee.role}</CardDescription>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(employee.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  {getLocationName(employee.location_id)}
-                </div>
-                {employee.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    {employee.email}
-                  </div>
-                )}
-                {employee.phone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    {employee.phone}
-                  </div>
-                )}
-                {employee.hourly_rate && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <DollarSign className="h-4 w-4" />
-                    ${employee.hourly_rate}/hr
-                    {employee.commission_rate && ` • ${employee.commission_rate}% commission`}
-                  </div>
-                )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profiles" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Employee Profiles
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Performance Analytics
+          </TabsTrigger>
+          <TabsTrigger value="management" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profiles" className="mt-6">
+          {employees.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No employees yet</h3>
+                <p className="text-muted-foreground">Add your first team member to get started</p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {employees.map((employee) => (
+                <Card key={employee.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {employee.name}
+                          {!employee.is_active && (
+                            <Badge variant="secondary">Inactive</Badge>
+                          )}
+                        </CardTitle>
+                        {employee.role && (
+                          <CardDescription>{employee.role}</CardDescription>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(employee.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      {getLocationName(employee.location_id)}
+                    </div>
+                    {employee.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        {employee.email}
+                      </div>
+                    )}
+                    {employee.phone && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        {employee.phone}
+                      </div>
+                    )}
+                    {employee.hourly_rate && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <DollarSign className="h-4 w-4" />
+                        ${employee.hourly_rate}/hr
+                        {employee.commission_rate && ` • ${employee.commission_rate}% commission`}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-6">
+          {analyticsLoading ? (
+            <div className="flex items-center justify-center h-64">Loading analytics...</div>
+          ) : analyticsData.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No analytics data yet</h3>
+                <p className="text-muted-foreground">Complete some appointments to see employee performance metrics</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                        <p className="text-2xl font-bold">
+                          ${analyticsData.reduce((sum, emp) => sum + emp.total_revenue, 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Active Employees</p>
+                        <p className="text-2xl font-bold">{employees.filter(emp => emp.is_active).length}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-blue-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Appointments</p>
+                        <p className="text-2xl font-bold">
+                          {analyticsData.reduce((sum, emp) => sum + emp.completed_appointments, 0)}
+                        </p>
+                      </div>
+                      <BarChart3 className="h-8 w-8 text-purple-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Avg Commission</p>
+                        <p className="text-2xl font-bold">
+                          ${(analyticsData.reduce((sum, emp) => sum + emp.commission_earned, 0) / Math.max(analyticsData.length, 1)).toFixed(2)}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-orange-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Employee Performance Cards */}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {analyticsData.map((employee) => (
+                  <EmployeeAnalyticsCard
+                    key={employee.employee_id}
+                    employee={employee}
+                    maxRevenue={maxRevenue}
+                  />
+                ))}
+              </div>
+
+              {/* Rankings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Employee Rankings</CardTitle>
+                  <CardDescription>Top performers by various metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-3">
+                    {/* Top Revenue */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Top Revenue Generators</h4>
+                      <div className="space-y-2">
+                        {analyticsData
+                          .sort((a, b) => b.total_revenue - a.total_revenue)
+                          .slice(0, 3)
+                          .map((emp, index) => (
+                            <div key={emp.employee_id} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={index === 0 ? "default" : "secondary"}>
+                                  {index + 1}
+                                </Badge>
+                                <span className="text-sm">{emp.employee_name}</span>
+                              </div>
+                              <span className="text-sm font-medium">${emp.total_revenue.toFixed(2)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Most Appointments */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Most Appointments</h4>
+                      <div className="space-y-2">
+                        {analyticsData
+                          .sort((a, b) => b.completed_appointments - a.completed_appointments)
+                          .slice(0, 3)
+                          .map((emp, index) => (
+                            <div key={emp.employee_id} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={index === 0 ? "default" : "secondary"}>
+                                  {index + 1}
+                                </Badge>
+                                <span className="text-sm">{emp.employee_name}</span>
+                              </div>
+                              <span className="text-sm font-medium">{emp.completed_appointments}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* Highest Avg Value */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Highest Avg Value</h4>
+                      <div className="space-y-2">
+                        {analyticsData
+                          .sort((a, b) => b.avg_appointment_value - a.avg_appointment_value)
+                          .slice(0, 3)
+                          .map((emp, index) => (
+                            <div key={emp.employee_id} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={index === 0 ? "default" : "secondary"}>
+                                  {index + 1}
+                                </Badge>
+                                <span className="text-sm">{emp.employee_name}</span>
+                              </div>
+                              <span className="text-sm font-medium">${emp.avg_appointment_value.toFixed(2)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="management" className="mt-6">
+          <div className="space-y-6">
+            {employees.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Settings className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No employees to manage</h3>
+                  <p className="text-muted-foreground">Add employees to manage their service specializations</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {employees.map((employee) => (
+                  <div key={employee.id} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">{employee.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {employee.role} • {getLocationName(employee.location_id)}
+                        </p>
+                      </div>
+                      <Badge variant={employee.is_active ? "default" : "secondary"}>
+                        {employee.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    
+                    {businessData?.id && (
+                      <EmployeeServiceSpecializations
+                        employeeId={employee.id}
+                        employeeName={employee.name}
+                        businessId={businessData.id}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

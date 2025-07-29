@@ -298,6 +298,60 @@ export type Database = {
           },
         ]
       }
+      employee_schedules: {
+        Row: {
+          actual_hours: number | null
+          created_at: string | null
+          date: string
+          employee_id: string
+          id: string
+          notes: string | null
+          planned_hours: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          created_at?: string | null
+          date: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          planned_hours?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_hours?: number | null
+          created_at?: string | null
+          date?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          planned_hours?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      employee_services: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          service_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           business_id: string
@@ -891,6 +945,26 @@ export type Database = {
           tag_name: string
           tag_color: string
           tag_category: string
+        }[]
+      }
+      get_employee_analytics: {
+        Args: { business_uuid: string }
+        Returns: {
+          employee_id: string
+          employee_name: string
+          employee_role: string
+          location_name: string
+          hire_date: string
+          hourly_rate: number
+          commission_rate: number
+          total_appointments: number
+          completed_appointments: number
+          total_revenue: number
+          commission_earned: number
+          avg_appointment_value: number
+          last_appointment_date: string
+          appointments_this_month: number
+          revenue_this_month: number
         }[]
       }
       get_revenue_period: {
