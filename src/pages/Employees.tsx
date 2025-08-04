@@ -88,7 +88,7 @@ export default function Employees() {
     try {
       const { data, error } = await supabase
         .from("employees")
-        .select("*")
+        .select("*, address")
         .eq("business_id", businessData?.id)
         .order("name");
 
