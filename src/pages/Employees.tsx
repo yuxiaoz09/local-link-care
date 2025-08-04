@@ -23,6 +23,7 @@ interface Employee {
   name: string;
   email: string | null;
   phone: string | null;
+  address: string | null;
   role: string | null;
   hourly_rate: number | null;
   commission_rate: number | null;
@@ -30,6 +31,16 @@ interface Employee {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface WeeklyScheduleStatus {
+  monday: 'off' | 'working' | 'cancelled';
+  tuesday: 'off' | 'working' | 'cancelled';
+  wednesday: 'off' | 'working' | 'cancelled';
+  thursday: 'off' | 'working' | 'cancelled';
+  friday: 'off' | 'working' | 'cancelled';
+  saturday: 'off' | 'working' | 'cancelled';
+  sunday: 'off' | 'working' | 'cancelled';
 }
 
 interface Location {
@@ -52,6 +63,7 @@ export default function Employees() {
     name: "",
     email: "",
     phone: "",
+    address: "",
     role: "",
     location_id: "",
     hourly_rate: "",
@@ -148,6 +160,7 @@ export default function Employees() {
         name: formData.name,
         email: formData.email || null,
         phone: formData.phone || null,
+        address: formData.address || null,
         role: formData.role || null,
         location_id: formData.location_id || null,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
@@ -192,6 +205,7 @@ export default function Employees() {
         name: "",
         email: "",
         phone: "",
+        address: "",
         role: "",
         location_id: "",
         hourly_rate: "",
@@ -216,6 +230,7 @@ export default function Employees() {
       name: employee.name,
       email: employee.email || "",
       phone: employee.phone || "",
+      address: employee.address || "",
       role: employee.role || "",
       location_id: employee.location_id || "",
       hourly_rate: employee.hourly_rate?.toString() || "",
@@ -272,6 +287,7 @@ export default function Employees() {
                 name: "",
                 email: "",
                 phone: "",
+                address: "",
                 role: "",
                 location_id: "",
                 hourly_rate: "",
@@ -318,6 +334,14 @@ export default function Employees() {
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
               </div>
               <div>
@@ -455,29 +479,63 @@ export default function Employees() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="text-sm text-muted-foreground">
-                      {getLocationName(employee.location_id)}
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        {getLocationName(employee.location_id)}
+                      </div>
+                      {employee.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground">{employee.email}</span>
+                        </div>
+                      )}
+                      {employee.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground">{employee.phone}</span>
+                        </div>
+                      )}
+                      {employee.address && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-foreground">{employee.address}</span>
+                        </div>
+                      )}
+                      {employee.hourly_rate && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          ${employee.hourly_rate}/hr
+                          {employee.commission_rate && ` • ${employee.commission_rate}% commission`}
+                        </div>
+                      )}
                     </div>
-                    {employee.email && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4" />
-                        {employee.email}
+                    
+                    {/* Weekly Schedule */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-foreground">Weekly Schedule</div>
+                      <div className="flex items-center justify-between">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                          // Mock schedule data - in real app this would come from database
+                          const scheduleStatus = ['working', 'working', 'off', 'working', 'working', 'cancelled', 'off'][index] as 'working' | 'off' | 'cancelled';
+                          
+                          return (
+                            <div key={day} className="flex flex-col items-center gap-1">
+                              <div className="text-xs text-muted-foreground">{day}</div>
+                              <div 
+                                className={`w-3 h-3 rounded-full border-2 ${
+                                  scheduleStatus === 'working' 
+                                    ? 'bg-green-500 border-green-500' 
+                                    : scheduleStatus === 'cancelled'
+                                    ? 'bg-red-500 border-red-500'
+                                    : 'bg-transparent border-muted-foreground'
+                                }`}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-                    {employee.phone && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4" />
-                        {employee.phone}
-                      </div>
-                    )}
-                    {employee.hourly_rate && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <DollarSign className="h-4 w-4" />
-                        ${employee.hourly_rate}/hr
-                        {employee.commission_rate && ` • ${employee.commission_rate}% commission`}
-                      </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
