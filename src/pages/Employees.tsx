@@ -15,6 +15,7 @@ import { User, Mail, Phone, DollarSign, Plus, Edit, Trash2, BarChart3, Users, Se
 import { toast } from "@/hooks/use-toast";
 import { EmployeeAnalyticsCard } from "@/components/employees/EmployeeAnalyticsCard";
 import { EmployeeServiceSpecializations } from "@/components/employees/EmployeeServiceSpecializations";
+import { EmployeeDetailDialog } from "@/components/employees/EmployeeDetailDialog";
 
 interface Employee {
   id: string;
@@ -56,6 +57,8 @@ export default function Employees() {
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedEmployeeForDetail, setSelectedEmployeeForDetail] = useState<Employee | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<any[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("profiles");
@@ -450,7 +453,10 @@ export default function Employees() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {employees.map((employee) => (
-                <Card key={employee.id}>
+                <Card key={employee.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+                  setSelectedEmployeeForDetail(employee);
+                  setIsDetailDialogOpen(true);
+                }}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -464,7 +470,7 @@ export default function Employees() {
                           <CardDescription>{employee.role}</CardDescription>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}>
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -738,6 +744,17 @@ export default function Employees() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Employee Detail Dialog */}
+      <EmployeeDetailDialog
+        employee={selectedEmployeeForDetail}
+        isOpen={isDetailDialogOpen}
+        onClose={() => {
+          setIsDetailDialogOpen(false);
+          setSelectedEmployeeForDetail(null);
+        }}
+        businessId={businessData?.id || ""}
+      />
     </div>
   );
 }
