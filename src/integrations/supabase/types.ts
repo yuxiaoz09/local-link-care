@@ -814,6 +814,239 @@ export type Database = {
         }
         Relationships: []
       }
+      response_templates: {
+        Row: {
+          business_id: string | null
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          template_text: string
+          usage_count: number | null
+        }
+        Insert: {
+          business_id?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          template_text: string
+          usage_count?: number | null
+        }
+        Update: {
+          business_id?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          template_text?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_requests: {
+        Row: {
+          appointment_id: string | null
+          business_id: string | null
+          clicked_date: string | null
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          opened_date: string | null
+          platform_requested: string | null
+          request_type: string
+          review_completed: boolean | null
+          review_id: string | null
+          sent_date: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          business_id?: string | null
+          clicked_date?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          opened_date?: string | null
+          platform_requested?: string | null
+          request_type: string
+          review_completed?: boolean | null
+          review_id?: string | null
+          sent_date: string
+        }
+        Update: {
+          appointment_id?: string | null
+          business_id?: string | null
+          clicked_date?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          opened_date?: string | null
+          platform_requested?: string | null
+          request_type?: string
+          review_completed?: boolean | null
+          review_id?: string | null
+          sent_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_requests_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_requests_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_requests_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_settings: {
+        Row: {
+          auto_request_enabled: boolean | null
+          business_id: string | null
+          created_at: string | null
+          email_notifications: boolean | null
+          follow_up_delay_days: number | null
+          follow_up_enabled: boolean | null
+          id: string
+          preferred_platforms: string[] | null
+          request_delay_hours: number | null
+          sms_notifications: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_request_enabled?: boolean | null
+          business_id?: string | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          follow_up_delay_days?: number | null
+          follow_up_enabled?: boolean | null
+          id?: string
+          preferred_platforms?: string[] | null
+          request_delay_hours?: number | null
+          sms_notifications?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_request_enabled?: boolean | null
+          business_id?: string | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          follow_up_delay_days?: number | null
+          follow_up_enabled?: boolean | null
+          id?: string
+          preferred_platforms?: string[] | null
+          request_delay_hours?: number | null
+          sms_notifications?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_settings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          business_id: string | null
+          created_at: string | null
+          customer_avatar_url: string | null
+          customer_name: string | null
+          external_review_id: string
+          id: string
+          is_flagged: boolean | null
+          keywords: string[] | null
+          platform: string
+          rating: number
+          response_author: string | null
+          response_date: string | null
+          response_text: string | null
+          review_date: string
+          review_text: string | null
+          sentiment_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string | null
+          customer_avatar_url?: string | null
+          customer_name?: string | null
+          external_review_id: string
+          id?: string
+          is_flagged?: boolean | null
+          keywords?: string[] | null
+          platform: string
+          rating: number
+          response_author?: string | null
+          response_date?: string | null
+          response_text?: string | null
+          review_date: string
+          review_text?: string | null
+          sentiment_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string | null
+          customer_avatar_url?: string | null
+          customer_name?: string | null
+          external_review_id?: string
+          id?: string
+          is_flagged?: boolean | null
+          keywords?: string[] | null
+          platform?: string
+          rating?: number
+          response_author?: string | null
+          response_date?: string | null
+          response_text?: string | null
+          review_date?: string
+          review_text?: string | null
+          sentiment_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_audit_log: {
         Row: {
           action: string
