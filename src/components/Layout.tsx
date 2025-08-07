@@ -18,7 +18,8 @@ import {
   Shield,
   LogOut,
   Menu,
-  Code
+  Code,
+  Star
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ChatInterface } from '@/components/chat/ChatInterface';
@@ -66,6 +67,7 @@ const Layout = ({ children }: LayoutProps) => {
     { path: '/employees', icon: UserCheck, label: 'Employees', roles: ['admin', 'owner'] as UserRole[] },
     { path: '/products', icon: Package, label: 'Services & Products', roles: ['manager', 'admin', 'owner'] as UserRole[] },
     { path: '/widgets', icon: Code, label: 'Booking Widgets', roles: ['admin', 'owner'] as UserRole[] },
+    { path: '/reviews', icon: Star, label: 'Reviews', roles: ['employee', 'manager', 'admin', 'owner'] as UserRole[] },
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['manager', 'admin', 'owner'] as UserRole[] },
     { path: '/analytics', icon: TrendingUp, label: 'Analytics', roles: ['admin', 'owner'] as UserRole[] },
     { path: '/security', icon: Shield, label: 'Security', roles: ['admin', 'owner'] as UserRole[] },

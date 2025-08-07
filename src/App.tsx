@@ -21,6 +21,7 @@ import Locations from "./pages/Locations";
 import Employees from "./pages/Employees";
 import Products from "./pages/Products";
 import Widgets from "./pages/Widgets";
+import Reviews from "./pages/Reviews";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
 
@@ -121,6 +122,11 @@ const App = () => (
             <Route path="/widgets" element={
               <ProtectedRoute>
                 <Widgets />
+              </ProtectedRoute>
+            } />
+            <Route path="/reviews" element={
+              <ProtectedRoute>
+                <Reviews />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
