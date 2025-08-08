@@ -17,6 +17,7 @@ import { ReviewRequestDialog } from '@/components/reviews/ReviewRequestDialog';
 import { ResponseTemplatesDialog } from '@/components/reviews/ResponseTemplatesDialog';
 import { ReviewSettingsDialog } from '@/components/reviews/ReviewSettingsDialog';
 import { useToast } from '@/hooks/use-toast';
+import { ReviewAIAnalysis } from '@/components/reviews/ReviewAIAnalysis';
 
 interface Review {
   id: string;
@@ -249,6 +250,7 @@ export default function Reviews() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="reviews">All Reviews</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="ai-analysis">AI Analysis</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-4">
@@ -360,6 +362,13 @@ export default function Reviews() {
         
         <TabsContent value="analytics" className="space-y-4">
           <ReviewAnalytics businessId={businessData?.id || ''} reviews={reviews} />
+        </TabsContent>
+
+        <TabsContent value="ai-analysis" className="space-y-4">
+          <ReviewAIAnalysis
+            businessId={businessData?.id || ''}
+            filters={filters}
+          />
         </TabsContent>
       </Tabs>
 
